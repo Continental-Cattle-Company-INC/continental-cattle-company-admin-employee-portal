@@ -372,6 +372,60 @@ const SECTIONS = [
     ]
   },
   {
+    category: 'ENVIRONMENTAL & SUSTAINABILITY ENGINES (651–700)', sections: [
+      { num: 651, title: 'Environmental Impact Engine', content: 'Tracks: land, water, air, soil, biodiversity impacts.\nOutputs: Environmental impact score, forecast, mitigation plan.' },
+      { num: 652, title: 'Environmental Fusion Engine', content: 'Fuses environmental data with: weather, feed, herd size, land use, water availability.\nOutputs: Environmental fusion score, map, strategy.' },
+      { num: 653, title: 'Environmental Simulation Engine', content: 'Simulates: drought, flood, heat waves, cold snaps, soil degradation.\nOutputs: Environmental simulation outcomes, risk, optimization.' },
+      { num: 654, title: 'Environmental Control Tower', content: 'Unified environmental command over: land use, water use, grazing, waste management.\nOutputs: Environmental command plan, optimization.' },
+      { num: 655, title: 'Land-Use Engine', content: 'Tracks: grazing rotation, stocking density, soil health, vegetation recovery.\nOutputs: Land-use score, forecast, optimization plan.' },
+      { num: 656, title: 'Land-Use Fusion Engine', content: 'Fuses land-use with: weather, soil moisture, forage growth, herd movement.\nOutputs: Land-use fusion score, map, strategy.' },
+      { num: 657, title: 'Land-Use Simulation Engine', content: 'Simulates: overgrazing, drought stress, soil erosion, vegetation collapse.\nOutputs: Land-use simulation outcomes, risk, optimization.' },
+      { num: 658, title: 'Land-Use Control Tower', content: 'Unified command over: grazing rotation, stocking density, land recovery.\nOutputs: Land-use command plan, optimization.' },
+      { num: 659, title: 'Water Resource Engine', content: 'Tracks: water availability, quality, distribution, stress.\nOutputs: Water resource score, forecast, optimization plan.' },
+      { num: 660, title: 'Water Resource Fusion Engine', content: 'Fuses water data with: weather, herd size, feed systems.\nOutputs: Water fusion score, map, strategy.' },
+      { num: 661, title: 'Water Resource Simulation Engine', content: 'Simulates: drought, water contamination, water shortages.\nOutputs: Water simulation outcomes, risk, optimization.' },
+      { num: 662, title: 'Water Resource Control Tower', content: 'Unified water command over: delivery, storage, quality.\nOutputs: Water command plan, optimization.' },
+      { num: 663, title: 'Carbon Engine', content: 'Tracks: carbon footprint, methane emissions, carbon sequestration.\nOutputs: Carbon score, forecast, optimization plan.' },
+      { num: 664, title: 'Carbon Fusion Engine', content: 'Fuses carbon data with: feed, weather, land use.\nOutputs: Carbon fusion score, map, strategy.' },
+      { num: 665, title: 'Carbon Simulation Engine', content: 'Simulates: emission spikes, feed changes, weather impacts.\nOutputs: Carbon simulation outcomes, risk, optimization.' },
+      { num: 666, title: 'Carbon Control Tower', content: 'Unified carbon command over: emission reduction, carbon capture, carbon offsets.\nOutputs: Carbon command plan, optimization.' },
+      { num: 667, title: 'Climate Engine', content: 'Tracks: ENSO, PDO, AMO, jet stream shifts.\nOutputs: Climate score, forecast, strategy.' },
+      { num: 668, title: 'Climate Fusion Engine', content: 'Fuses climate data with: feed, water, land, herd performance.\nOutputs: Climate fusion score, map, strategy.' },
+      { num: 669, title: 'Climate Simulation Engine', content: 'Simulates: multi-year drought, wet cycles, extreme temperature cycles.\nOutputs: Climate simulation outcomes, risk, optimization.' },
+      { num: 670, title: 'Climate Control Tower', content: 'Unified climate command over: feeding, water, grazing, housing.\nOutputs: Climate command plan, optimization.' },
+      { num: 671, title: 'Sustainability Engine', content: 'Tracks: land, water, carbon, waste, energy sustainability metrics.\nOutputs: Sustainability score, forecast, optimization plan.' },
+      { num: 672, title: 'Sustainability Fusion Engine', content: 'Fuses sustainability with: market demand, regulatory pressure, environmental conditions.\nOutputs: Sustainability fusion score, map, strategy.' },
+      { num: 673, title: 'Sustainability Simulation Engine', content: 'Simulates: regulatory changes, environmental shifts, market sustainability premiums.\nOutputs: Sustainability simulation outcomes, risk, optimization.' },
+      { num: 674, title: 'Sustainability Control Tower', content: 'Unified sustainability command over: land, water, carbon, waste.\nOutputs: Sustainability command plan, optimization.' },
+      { num: 675, title: 'Soil Health Engine', content: 'Tracks: organic matter, compaction, microbial activity, erosion.\nOutputs: Soil score, forecast, optimization plan.' },
+      { num: 676, title: 'Soil Health Fusion Engine', content: 'Fuses soil data with: weather, grazing, land use.\nOutputs: Soil fusion score, map, strategy.' },
+      { num: 677, title: 'Soil Health Simulation Engine', content: 'Simulates: erosion, drought, overgrazing.\nOutputs: Soil simulation outcomes, risk, optimization.' },
+      { num: 678, title: 'Soil Health Control Tower', content: 'Unified soil command over: grazing, land recovery, soil amendments.\nOutputs: Soil command plan, optimization.' },
+      { num: 679, title: 'Forage Engine', content: 'Tracks: forage growth, quality, availability.\nOutputs: Forage score, forecast, optimization plan.' },
+      { num: 680, title: 'Forage Fusion Engine', content: 'Fuses forage with: weather, soil, grazing.\nOutputs: Forage fusion score, map, strategy.' },
+      { num: 681, title: 'Forage Simulation Engine', content: 'Simulates: drought, overgrazing, seasonal shifts.\nOutputs: Forage simulation outcomes, risk, optimization.' },
+      { num: 682, title: 'Forage Control Tower', content: 'Unified forage command over: grazing, stocking density, land rotation.\nOutputs: Forage command plan, optimization.' },
+      { num: 683, title: 'Waste Management Engine', content: 'Tracks: manure, runoff, nutrient load.\nOutputs: Waste score, forecast, optimization plan.' },
+      { num: 684, title: 'Waste Management Fusion Engine', content: 'Fuses waste with: soil, water, land.\nOutputs: Waste fusion score, map, strategy.' },
+      { num: 685, title: 'Waste Management Simulation Engine', content: 'Simulates: runoff events, contamination events, nutrient overload.\nOutputs: Waste simulation outcomes, risk, optimization.' },
+      { num: 686, title: 'Waste Management Control Tower', content: 'Unified waste command over: manure handling, nutrient distribution, environmental compliance.\nOutputs: Waste command plan, optimization.' },
+      { num: 687, title: 'Energy Engine', content: 'Tracks: electricity, fuel, heating, cooling usage.\nOutputs: Energy score, forecast, optimization plan.' },
+      { num: 688, title: 'Energy Fusion Engine', content: 'Fuses energy with: weather, processing, logistics.\nOutputs: Energy fusion score, map, strategy.' },
+      { num: 689, title: 'Energy Simulation Engine', content: 'Simulates: fuel spikes, power outages, energy shortages.\nOutputs: Energy simulation outcomes, risk, optimization.' },
+      { num: 690, title: 'Energy Control Tower', content: 'Unified energy command over: fuel, electricity, heating, cooling.\nOutputs: Energy command plan, optimization.' },
+      { num: 691, title: 'Climate-Resilience Engine', content: 'Tracks resilience to: heat, cold, drought, flood.\nOutputs: Climate resilience score, forecast, strategy.' },
+      { num: 692, title: 'Climate-Resilience Fusion Engine', content: 'Fuses resilience with: feed, water, land, herd.\nOutputs: Resilience fusion score, map, strategy.' },
+      { num: 693, title: 'Climate-Resilience Simulation Engine', content: 'Simulates: multi-year drought, heat, cold.\nOutputs: Resilience simulation outcomes, risk, optimization.' },
+      { num: 694, title: 'Climate-Resilience Control Tower', content: 'Unified resilience command over: feeding, water, housing, grazing.\nOutputs: Resilience command plan, optimization.' },
+      { num: 695, title: 'Ecosystem Engine', content: 'Tracks: biodiversity, vegetation, soil, water ecosystem health.\nOutputs: Ecosystem score, forecast, optimization plan.' },
+      { num: 696, title: 'Ecosystem Fusion Engine', content: 'Fuses ecosystem data with: land, water, weather.\nOutputs: Ecosystem fusion score, map, strategy.' },
+      { num: 697, title: 'Ecosystem Simulation Engine', content: 'Simulates: habitat loss, vegetation collapse, water scarcity.\nOutputs: Ecosystem simulation outcomes, risk, optimization.' },
+      { num: 698, title: 'Ecosystem Control Tower', content: 'Unified ecosystem command over: land, water, grazing.\nOutputs: Ecosystem command plan, optimization.' },
+      { num: 699, title: 'Environmental Superstructure Engine', content: 'Builds overarching environmental architecture governing all environmental engines.\nOutputs: Environmental superstructure score, map, strategy.' },
+      { num: 700, title: 'Environmental Master Completion', content: '651–700 environmental tier complete. Full land-use, water, carbon, climate, sustainability, soil, forage, waste, energy, resilience, and ecosystem integration. Full fusion + simulation + control tower architecture.' },
+    ]
+  },
+  {
     category: 'ENTITY STRUCTURE', sections: [
       { num: 76, title: 'Multi-Entity Profit Consolidation Model', content: 'Continental Cattle Co INC: marketing\nRincon Cattle Co LLC: sales rep\nFlying 3 Bar B Livestock LLC: sales rep\nGrand Slam Cattle Co LLC: dispatch\nFull Count Trucking LLC: hauling\nBeeson Bucking Bulls: trucking/overflow\nOutputs: profit per entity, per load, per week, per month, per year, consolidated enterprise profit' },
       { num: 73, title: 'Internal Transfer Pricing Optimizer', content: 'Stages: 95→400 lb, 400→900 lb, 900→1500 lb\nMargins captured at each stage: commission, freight, dispatch, marketing, ownership\nKey principle: capturing every transfer creates enterprise profit even when individual stages show losses' },
@@ -399,7 +453,7 @@ export default function MasterDocument() {
       <SectionHeader
         title="MASTER DOCUMENT"
         subtitle="Continental Cattle Co INC — Master Cattle Economics System (2026 Edition)"
-        badge="Sections 1–650+"
+        badge="Sections 1–700+"
       />
 
       {/* Search */}
@@ -418,7 +472,7 @@ export default function MasterDocument() {
       <div className="flex gap-4 text-xs text-muted-foreground">
         <span>Sections indexed: <span className="text-primary">{SECTIONS.reduce((s, c) => s + c.sections.length, 0)}</span></span>
         <span>Categories: <span className="text-primary">{SECTIONS.length}</span></span>
-        <span>Total system sections: <span className="text-primary">650+</span></span>
+        <span>Total system sections: <span className="text-primary">700+</span></span>
       </div>
 
       {/* Document */}
