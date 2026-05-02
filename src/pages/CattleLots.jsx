@@ -5,6 +5,14 @@ import SectionHeader from '@/components/SectionHeader';
 import { Plus, X, Beef, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import PullToRefresh from '@/components/PullToRefresh';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const CLASSES = [
   { value: 'holstein_steer', label: 'Holstein Steer' },
@@ -77,6 +85,7 @@ export default function CattleLots() {
   const f = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   return (
+    <PullToRefresh onRefresh={() => qc.invalidateQueries({ queryKey: ['cattleLots'] })}>
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <SectionHeader title="CATTLE LOTS" subtitle="Track all active lots across entities and stages" badge="Live" />
@@ -89,18 +98,26 @@ export default function CattleLots() {
       {/* Filters + Stats */}
       <div className="flex flex-wrap gap-3 items-center justify-between">
         <div className="flex gap-2 flex-wrap">
-          <select value={filterEntity} onChange={e => setFilterEntity(e.target.value)}
-            className="bg-secondary border border-border rounded px-3 py-2 text-foreground text-sm">
-            <option value="all">All Entities</option>
-            {ENTITIES.map(e => <option key={e} value={e}>{e}</option>)}
-          </select>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            className="bg-secondary border border-border rounded px-3 py-2 text-foreground text-sm">
-            <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="sold">Sold</option>
-            <option value="transferred">Transferred</option>
-          </select>
+          <Select value={filterEntity} onValueChange={setFilterEntity}>
+            <SelectTrigger className="w-32 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Entities</SelectItem>
+              {ENTITIES.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-32 text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="sold">Sold</SelectItem>
+              <SelectItem value="transferred">Transferred</SelectItem>
+            </SelectContent>
+          </Select>
           <div className="flex items-center gap-3 bg-card border border-border rounded px-3 py-2">
             <span className="text-xs text-muted-foreground">Head: <span className="text-primary font-medium">{totalHead.toLocaleString()}</span></span>
             <span className="text-xs text-muted-foreground">Value: <span className="text-success font-medium">${(totalValue/1000).toFixed(0)}K</span></span>
@@ -141,24 +158,36 @@ export default function CattleLots() {
             ))}
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Cattle Class</label>
-              <select value={form.cattle_class} onChange={e => f('cattle_class', e.target.value)}
-                className="w-full bg-secondary border border-border rounded px-3 py-2 text-foreground text-sm">
-                {CLASSES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-              </select>
+              <Select value={form.cattle_class} onValueChange={(value) => f('cattle_class', value)}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CLASSES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Entity</label>
-              <select value={form.entity} onChange={e => f('entity', e.target.value)}
-                className="w-full bg-secondary border border-border rounded px-3 py-2 text-foreground text-sm">
-                {ENTITIES.map(e => <option key={e} value={e}>{e}</option>)}
-              </select>
+              <Select value={form.entity} onValueChange={(value) => f('entity', value)}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ENTITIES.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Stage</label>
-              <select value={form.stage} onChange={e => f('stage', e.target.value)}
-                className="w-full bg-secondary border border-border rounded px-3 py-2 text-foreground text-sm">
-                {STAGES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
-              </select>
+              <Select value={form.stage} onValueChange={(value) => f('stage', value)}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STAGES.map(s => <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <textarea placeholder="Notes..." value={form.notes} onChange={e => f('notes', e.target.value)}
@@ -209,14 +238,17 @@ export default function CattleLots() {
                     </td>
                     <td className="px-3 py-2.5 text-success font-medium">${(val/1000).toFixed(1)}K</td>
                     <td className="px-3 py-2.5">
-                      <select value={lot.status}
-                        onChange={e => updateMut.mutate({ id: lot.id, data: { status: e.target.value } })}
-                        className="bg-secondary border border-border rounded px-2 py-1 text-foreground text-xs">
-                        <option value="active">Active</option>
-                        <option value="sold">Sold</option>
-                        <option value="transferred">Transferred</option>
-                        <option value="dead">Dead</option>
-                      </select>
+                      <Select value={lot.status} onValueChange={(value) => updateMut.mutate({ id: lot.id, data: { status: value } })}>
+                        <SelectTrigger className="w-24 h-7 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="sold">Sold</SelectItem>
+                          <SelectItem value="transferred">Transferred</SelectItem>
+                          <SelectItem value="dead">Dead</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </td>
                   </tr>
                 );
@@ -226,5 +258,6 @@ export default function CattleLots() {
         </div>
       </div>
     </div>
+    </PullToRefresh>
   );
 }

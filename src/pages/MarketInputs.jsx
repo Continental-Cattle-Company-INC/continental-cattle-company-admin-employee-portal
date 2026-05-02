@@ -6,6 +6,13 @@ import { format } from 'date-fns';
 import { Save, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRealtimeSync, useAutoRefetch } from '@/hooks/useRealtimeSync';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const FIELDS = [
   { key: 'lc_futures', label: 'LC Futures', unit: '$/cwt', default: 241.66 },
@@ -132,27 +139,29 @@ export default function MarketInputsPage() {
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Import Volume</label>
-              <select
-                value={form.import_volume}
-                onChange={e => setForm(p => ({ ...p, import_volume: e.target.value }))}
-                className="w-full bg-secondary border border-border rounded px-3 py-2 text-foreground text-sm"
-              >
-                <option value="high">High</option>
-                <option value="normal">Normal</option>
-                <option value="low">Low</option>
-              </select>
+              <Select value={form.import_volume} onValueChange={(value) => setForm(p => ({ ...p, import_volume: value }))}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Export Volume</label>
-              <select
-                value={form.export_volume}
-                onChange={e => setForm(p => ({ ...p, export_volume: e.target.value }))}
-                className="w-full bg-secondary border border-border rounded px-3 py-2 text-foreground text-sm"
-              >
-                <option value="high">High</option>
-                <option value="normal">Normal</option>
-                <option value="low">Low</option>
-              </select>
+              <Select value={form.export_volume} onValueChange={(value) => setForm(p => ({ ...p, export_volume: value }))}>
+                <SelectTrigger className="text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="low">Low</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

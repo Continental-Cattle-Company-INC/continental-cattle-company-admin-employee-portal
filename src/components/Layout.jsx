@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
+import MobileHeader from './MobileHeader';
+import MobileTabBar from './MobileTabBar';
 import {
   LayoutDashboard, TrendingUp, Calculator, BarChart3,
   Beef, Truck, Globe, BookOpen, Settings, ShieldAlert, Activity, Menu, X, DollarSign,
@@ -44,9 +46,9 @@ export default function Layout() {
   );
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-56' : 'w-0'} bg-card border-r border-border flex flex-col overflow-hidden transition-all duration-300`}>
+    <div className="flex h-screen bg-background flex-col md:flex-row">
+      {/* Sidebar - Hidden on mobile */}
+      <aside className={`hidden md:flex ${sidebarOpen ? 'md:w-56' : 'md:w-0'} bg-card border-r border-border flex-col overflow-hidden transition-all duration-300`}>
         {/* Logo */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-3">
@@ -91,9 +93,14 @@ export default function Layout() {
         </div>
       </aside>
 
+      {/* Mobile Header - Shown only on mobile */}
+      {typeof window !== 'undefined' && window.innerWidth < 768 && (
+        <MobileHeader />
+      )}
+
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto flex flex-col">
-        <div className="flex items-center gap-2 p-4 border-b border-border bg-card/50">
+      <main className="flex-1 overflow-y-auto flex flex-col md:mt-0 mt-0">
+        <div className="hidden md:flex items-center gap-2 p-4 border-b border-border bg-card/50">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-1 hover:bg-secondary rounded-md transition-colors"
@@ -102,10 +109,13 @@ export default function Layout() {
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto pb-20 md:pb-0">
           <Outlet />
         </div>
       </main>
+
+      {/* Mobile Tab Bar - Shown only on mobile */}
+      <MobileTabBar navItems={navItems} location={location} />
     </div>
   );
 }

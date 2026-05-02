@@ -1,45 +1,21 @@
-import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
-
-const PAGE_TITLES = {
-  '/': 'Command Center',
-  '/market': 'Market Inputs',
-  '/roi-ladder': 'ROI Ladder',
-  '/cutout': 'Cutout Engine',
-  '/enterprise': 'Enterprise Model',
-  '/playbook': 'Weekly Playbook',
-  '/lots': 'Cattle Lots',
-  '/sensitivity': 'Sensitivity',
-  '/trucking': 'Trucking',
-  '/global': 'Global Intel',
-  '/document': 'Master Document',
-  '/approvals': 'Approvals',
-  '/settings': 'Settings',
-};
+import { Link } from 'react-router-dom';
 
 export default function MobileHeader() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const isRoot = location.pathname === '/';
-  const title = PAGE_TITLES[location.pathname] || 'Continental';
-
   return (
-    <div
-      className="md:hidden flex items-center h-12 px-4 bg-card border-b border-border flex-shrink-0"
-      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
-    >
-      {!isRoot && (
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-1 text-primary mr-3"
-        >
-          <ChevronLeft className="w-5 h-5" />
-          <span className="text-sm">Back</span>
-        </button>
-      )}
-      <span className="font-bebas text-lg text-foreground tracking-wide flex-1 text-center mr-10">
-        {isRoot ? 'CONTINENTAL CATTLE CO' : title.toUpperCase()}
-      </span>
+    <div className="md:hidden sticky top-0 z-40 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
+      <Link to="/" className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded overflow-hidden bg-[#D2782A] flex-shrink-0">
+          <img
+            src="https://media.base44.com/images/public/69f4e0f8f8f460e805a3eb84/d924dd25e_IMG_6891.png"
+            alt="Logo"
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="min-w-0">
+          <div className="font-bebas text-primary text-xs leading-tight">CONTINENTAL</div>
+          <div className="text-muted-foreground text-[10px]">Cattle Co</div>
+        </div>
+      </Link>
     </div>
   );
 }

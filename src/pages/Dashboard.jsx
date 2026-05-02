@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import SectionHeader from '@/components/SectionHeader';
 import StatCard from '@/components/StatCard';
+import PullToRefresh from '@/components/PullToRefresh';
 import { useAutoRefetch, useRealtimeSync } from '@/hooks/useRealtimeSync';
 import {
   TrendingUp, TrendingDown, Activity, AlertTriangle,
@@ -74,6 +75,10 @@ export default function Dashboard() {
   if (cutoutLiveSpread > 80) marketAlerts.push({ type: 'success', msg: `Cutout spread wide — packers bidding up` });
 
   return (
+    <PullToRefresh onRefresh={() => {
+      queryClient.invalidateQueries({ queryKey: ['marketInputs'] });
+      queryClient.invalidateQueries({ queryKey: ['cattleLots'] });
+    }}>
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -252,5 +257,6 @@ export default function Dashboard() {
         </div>
       </div>
     </div>
+    </PullToRefresh>
   );
 }

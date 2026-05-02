@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import RoleGate from '@/components/RoleGate';
 import Layout from '@/components/Layout';
+import { AnimatePresence, motion } from 'framer-motion';
 
 // Page imports
 import Dashboard from './pages/Dashboard';
@@ -58,7 +59,17 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={
+          <motion.div
+            key="dashboard"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Dashboard />
+          </motion.div>
+        } />
         <Route path="/market" element={<MarketInputsPage />} />
         <Route path="/roi-ladder" element={<ROILadder />} />
         <Route path="/cutout" element={<CutoutEngine />} />

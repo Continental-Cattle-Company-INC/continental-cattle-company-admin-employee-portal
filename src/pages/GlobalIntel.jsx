@@ -1,5 +1,12 @@
 import { useState } from 'react';
 import SectionHeader from '@/components/SectionHeader';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const GLOBAL_DATA = {
   imports: [
@@ -113,14 +120,17 @@ export default function GlobalIntel() {
                     <td className="px-4 py-2.5 text-xs text-muted-foreground">{r.product}</td>
                     <td className="px-4 py-2.5 text-danger text-xs">{r.priceEffect}</td>
                     <td className="px-4 py-2.5">
-                      <select value={importVol[r.country] || r.volume}
-                        onChange={e => setImportVol(p => ({ ...p, [r.country]: e.target.value }))}
-                        className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground">
-                        <option value="HIGH">HIGH</option>
-                        <option value="NORMAL">NORMAL</option>
-                        <option value="LOW">LOW</option>
-                      </select>
-                    </td>
+                       <Select value={importVol[r.country] || r.volume} onValueChange={(value) => setImportVol(p => ({ ...p, [r.country]: value }))}>
+                         <SelectTrigger className="w-20 h-8 text-xs">
+                           <SelectValue />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="HIGH">HIGH</SelectItem>
+                           <SelectItem value="NORMAL">NORMAL</SelectItem>
+                           <SelectItem value="LOW">LOW</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </td>
                   </tr>
                 ))}
               </tbody>
@@ -150,14 +160,17 @@ export default function GlobalIntel() {
                     <td className="px-4 py-2.5 text-xs text-muted-foreground">{r.product}</td>
                     <td className="px-4 py-2.5 text-success text-xs">{r.priceEffect}</td>
                     <td className="px-4 py-2.5">
-                      <select value={exportVol[r.country] || r.volume}
-                        onChange={e => setExportVol(p => ({ ...p, [r.country]: e.target.value }))}
-                        className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground">
-                        <option value="HIGH">HIGH</option>
-                        <option value="NORMAL">NORMAL</option>
-                        <option value="LOW">LOW</option>
-                      </select>
-                    </td>
+                       <Select value={exportVol[r.country] || r.volume} onValueChange={(value) => setExportVol(p => ({ ...p, [r.country]: value }))}>
+                         <SelectTrigger className="w-20 h-8 text-xs">
+                           <SelectValue />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="HIGH">HIGH</SelectItem>
+                           <SelectItem value="NORMAL">NORMAL</SelectItem>
+                           <SelectItem value="LOW">LOW</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </td>
                   </tr>
                 ))}
               </tbody>
