@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-async function processSyncData(base44, syncData, sourceAppId, timestamp, syncDirection = 'from_admin') {
+async function processSyncData(base44, syncData, sourceAppId, timestamp) {
   if (!syncData) {
     throw new Error('No sync data provided');
   }
@@ -64,11 +64,11 @@ Deno.serve(async (req) => {
 
     const { syncData, sourceAppId, timestamp } = await req.json();
 
-    const results = await processSyncData(base44, syncData, sourceAppId, timestamp, 'from_admin');
+    const results = await processSyncData(base44, syncData, sourceAppId, timestamp);
 
     return Response.json({
       status: 'success',
-      message: 'Admin sync received and processed',
+      message: 'Public app received admin sync',
       sourceAppId,
       timestamp,
       results

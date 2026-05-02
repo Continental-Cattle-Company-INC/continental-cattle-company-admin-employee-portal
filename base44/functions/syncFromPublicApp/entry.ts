@@ -1,9 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-// Target app ID - update this with the second app's ID
-const TARGET_APP_ID = 'UPDATE_WITH_TARGET_APP_ID';
+// Source public app ID - update with the public app ID
+const SOURCE_APP_ID = 'UPDATE_WITH_PUBLIC_APP_ID';
 
-// All 11 entities to sync (update trust entity names as needed)
+// All 11 entities to sync
 const ENTITIES_TO_SYNC = [
   'PublicOrder',
   'CustomerAccount',
@@ -29,8 +29,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    if (!TARGET_APP_ID || TARGET_APP_ID === 'UPDATE_WITH_TARGET_APP_ID') {
-      return Response.json({ error: 'TARGET_APP_ID not configured' }, { status: 500 });
+    if (!SOURCE_APP_ID || SOURCE_APP_ID === 'UPDATE_WITH_PUBLIC_APP_ID') {
+      return Response.json({ error: 'SOURCE_APP_ID not configured' }, { status: 500 });
     }
 
     const syncResults = {};
@@ -52,9 +52,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Call function in target app to receive sync
+    // Call function in source (public) app to receive this sync
     try {
-      const targetResponse = await base44.functions.invoke('receiveSyncFromSourceApp', {
+      const sourceResponse = await base44.functions.invoke('receiveAdminSyncFromSourceApp', {
         syncData: syncResults,
         sourceAppId: Deno.env.get('BASE44_APP_ID'),
         timestamp: new Date().toISOString()
@@ -62,16 +62,16 @@ Deno.serve(async (req) => {
 
       return Response.json({
         status: 'success',
-        message: 'Sync completed',
+        message: 'Admin sync pushed to public app',
         sourceApp: Deno.env.get('BASE44_APP_ID'),
-        targetApp: TARGET_APP_ID,
+        publicApp: SOURCE_APP_ID,
         syncResults,
-        targetResponse: targetResponse?.data
+        publicAppResponse: sourceResponse?.data
       });
     } catch (invokeError) {
       return Response.json({
         status: 'partial',
-        message: 'Data fetched but target sync failed',
+        message: 'Data fetched but public app sync failed',
         syncResults,
         error: invokeError.message
       });
