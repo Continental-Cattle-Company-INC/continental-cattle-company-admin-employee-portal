@@ -220,6 +220,49 @@ async function cleanupAndOptimize(base44) {
   return actions;
 }
 
+async function executeSyncAndValidationFunctions(base44) {
+  const actions = [];
+
+  const functions = [
+    { name: 'syncContinentalWebData', type: 'data_sync' },
+    { name: 'bidirectionalSync', type: 'sync' },
+    { name: 'comprehensiveCrossValidation', type: 'validation' },
+    { name: 'validateCarcassQuality', type: 'validation' },
+    { name: 'validateCrossDomainSync', type: 'validation' },
+    { name: 'generateRealTimeAlerts', type: 'monitoring' },
+  ];
+
+  for (const fn of functions) {
+    try {
+      const result = await base44.asServiceRole.functions.invoke(fn.name, {});
+      
+      actions.push({
+        type: `exec_${fn.name}`,
+        function: fn.name,
+        category: fn.type,
+        status: result?.status === 'error' ? 'error' : 'completed',
+        result: result?.summary || result?.message || 'Executed successfully',
+        timestamp: new Date().toISOString(),
+      });
+
+      console.log(`[AI ADMIN] ${fn.name} executed:`, result?.summary || 'Success');
+    } catch (error) {
+      actions.push({
+        type: `exec_${fn.name}`,
+        function: fn.name,
+        category: fn.type,
+        status: 'error',
+        error: error.message,
+        timestamp: new Date().toISOString(),
+      });
+
+      console.error(`[AI ADMIN] ${fn.name} failed:`, error.message);
+    }
+  }
+
+  return actions;
+}
+
 async function generateAdminReport(base44) {
   const report = {
     timestamp: new Date().toISOString(),
@@ -230,6 +273,9 @@ async function generateAdminReport(base44) {
       successCount: 0,
       errorCount: 0,
       flaggedItems: 0,
+      syncsExecuted: 0,
+      validationsExecuted: 0,
+      dataOperationsExecuted: 0,
     },
   };
 
@@ -240,11 +286,13 @@ async function generateAdminReport(base44) {
       cattleActions,
       approvalActions,
       cleanupActions,
+      syncValidationActions,
     ] = await Promise.all([
       reconcileMarketData(base44),
       syncCattleLotsStatus(base44),
       processApprovals(base44),
       cleanupAndOptimize(base44),
+      executeSyncAndValidationFunctions(base44),
     ]);
 
     report.actions = [
@@ -252,19 +300,25 @@ async function generateAdminReport(base44) {
       ...cattleActions,
       ...approvalActions,
       ...cleanupActions,
+      ...syncValidationActions,
     ];
 
-    // Count results
+    // Count results by category
     report.summary.totalActionsExecuted = report.actions.length;
     report.summary.successCount = report.actions.filter(a => a.status === 'completed' || a.status === 'auto_approved').length;
     report.summary.errorCount = report.actions.filter(a => a.status === 'error').length;
     report.summary.flaggedItems = report.actions.filter(a => a.status === 'flagged' || a.status === 'flagged_for_review').length;
+    report.summary.syncsExecuted = syncValidationActions.filter(a => a.category === 'sync' || a.category === 'data_sync').length;
+    report.summary.validationsExecuted = syncValidationActions.filter(a => a.category === 'validation').length;
+    report.summary.dataOperationsExecuted = marketActions.length + cattleActions.length + approvalActions.length;
 
     console.log('[AI ADMIN] Report:', {
       executed: report.summary.totalActionsExecuted,
       success: report.summary.successCount,
       errors: report.summary.errorCount,
       flagged: report.summary.flaggedItems,
+      syncs: report.summary.syncsExecuted,
+      validations: report.summary.validationsExecuted,
     });
   } catch (error) {
     console.error('[AI ADMIN] Fatal error:', error.message);

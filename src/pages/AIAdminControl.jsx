@@ -110,6 +110,9 @@ export default function AIAdminControl() {
   const approvalActions = adminReport?.actions?.filter(a => a.type.includes('approved') || a.type.includes('approval')) || [];
   const cattleActions = adminReport?.actions?.filter(a => a.type.includes('lot') || a.type.includes('cattle')) || [];
   const cleanupActions = adminReport?.actions?.filter(a => a.type.includes('archive') || a.type.includes('duplicate') || a.type.includes('cleanup')) || [];
+  const syncActions = adminReport?.actions?.filter(a => a.type.includes('exec_') && (a.category === 'sync' || a.category === 'data_sync')) || [];
+  const validationActions = adminReport?.actions?.filter(a => a.type.includes('exec_') && a.category === 'validation') || [];
+  const monitoringActions = adminReport?.actions?.filter(a => a.type.includes('exec_') && a.category === 'monitoring') || [];
 
   const errorCount = adminReport?.actions?.filter(a => a.status === 'error').length || 0;
   const successCount = adminReport?.summary?.successCount || 0;
@@ -146,7 +149,7 @@ export default function AIAdminControl() {
       </div>
 
       {/* Summary KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
         <div className="bg-card border border-border rounded-lg p-4 text-center">
           <div className="font-bebas text-3xl text-primary">{adminReport?.summary?.totalActionsExecuted || 0}</div>
           <div className="text-xs text-muted-foreground mt-1">Total Actions</div>
@@ -165,7 +168,15 @@ export default function AIAdminControl() {
         </div>
         <div className="bg-card border border-warning/20 rounded-lg p-4 text-center">
           <div className="font-bebas text-3xl text-warning">{adminReport?.summary?.flaggedItems || 0}</div>
-          <div className="text-xs text-muted-foreground mt-1">Flagged for Review</div>
+          <div className="text-xs text-muted-foreground mt-1">Flagged</div>
+        </div>
+        <div className="bg-card border border-primary/20 rounded-lg p-4 text-center">
+          <div className="font-bebas text-3xl text-primary">{adminReport?.summary?.syncsExecuted || 0}</div>
+          <div className="text-xs text-muted-foreground mt-1">Syncs Run</div>
+        </div>
+        <div className="bg-card border border-primary/20 rounded-lg p-4 text-center">
+          <div className="font-bebas text-3xl text-primary">{adminReport?.summary?.validationsExecuted || 0}</div>
+          <div className="text-xs text-muted-foreground mt-1">Validations</div>
         </div>
       </div>
 
@@ -197,14 +208,29 @@ export default function AIAdminControl() {
       {/* Action Categories */}
       <div className="space-y-6">
         <CategorySection
-          title="Market Data Operations"
+          title="Sync & Data Operations"
           icon={Zap}
-          actions={marketActions}
+          actions={syncActions}
+        />
+        <CategorySection
+          title="Validation & Analysis"
+          icon={CheckCircle}
+          actions={validationActions}
+        />
+        <CategorySection
+          title="Real-Time Monitoring"
+          icon={AlertCircle}
+          actions={monitoringActions}
         />
         <CategorySection
           title="Auto-Approvals"
           icon={CheckCircle}
           actions={approvalActions}
+        />
+        <CategorySection
+          title="Market Data Operations"
+          icon={Zap}
+          actions={marketActions}
         />
         <CategorySection
           title="Cattle Lot Syncs"
