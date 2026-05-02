@@ -642,6 +642,60 @@ const SECTIONS = [
     ]
   },
   {
+    category: 'GEOPOLITICAL, NATIONAL-SECURITY & SOVEREIGN-SCALE ENGINES (901–950)', sections: [
+      { num: 901, title: 'Geopolitical Engine', content: 'Tracks geopolitical forces: regional conflicts, trade alliances, sanctions, political instability, border disruptions.\nOutputs: Geopolitical score, geopolitical forecast, geopolitical strategy.' },
+      { num: 902, title: 'Geopolitical Fusion Engine', content: 'Fuses geopolitics with: trade flows, currency, logistics, export demand.\nOutputs: Geopolitical fusion score, geopolitical fusion map, geopolitical fusion strategy.' },
+      { num: 903, title: 'Geopolitical Simulation Engine', content: 'Simulates: war, trade embargoes, border closures, sanction cascades.\nOutputs: Geopolitical simulation outcomes, geopolitical simulation risk, geopolitical simulation optimization.' },
+      { num: 904, title: 'Geopolitical Control Tower', content: 'Provides unified geopolitical command over: export timing, import substitution, logistics rerouting.\nOutputs: Geopolitical command plan, geopolitical command optimization.' },
+      { num: 905, title: 'National Security Engine', content: 'Tracks protein-security threats: supply chain attacks, cyber threats, infrastructure sabotage, food-system vulnerabilities.\nOutputs: Security score, security forecast, security strategy.' },
+      { num: 906, title: 'National Security Fusion Engine', content: 'Fuses national-security data with: logistics, processing, cold storage, trade.\nOutputs: Security fusion score, security fusion map, security fusion strategy.' },
+      { num: 907, title: 'National Security Simulation Engine', content: 'Simulates: infrastructure attacks, cyber breaches, transport shutdowns.\nOutputs: Security simulation outcomes, security simulation risk, security simulation optimization.' },
+      { num: 908, title: 'National Security Control Tower', content: 'Provides unified security command over: risk mitigation, infrastructure hardening, cyber defense.\nOutputs: Security command plan, security command optimization.' },
+      { num: 909, title: 'Global Trade Engine 2.0', content: 'Tracks global trade flows: beef, pork, poultry, dairy, aquaculture.\nOutputs: Trade score, trade forecast, trade strategy.' },
+      { num: 910, title: 'Global Trade Fusion Engine 2.0', content: 'Fuses trade with: currency, logistics, geopolitics.\nOutputs: Trade fusion score, trade fusion map, trade fusion strategy.' },
+      { num: 911, title: 'Global Trade Simulation Engine 2.0', content: 'Simulates: tariff wars, export bans, port shutdowns.\nOutputs: Trade simulation outcomes, trade simulation risk, trade simulation optimization.' },
+      { num: 912, title: 'Global Trade Control Tower 2.0', content: 'Provides unified trade command over: export timing, import substitution, logistics.\nOutputs: Trade command plan, trade command optimization.' },
+      { num: 913, title: 'Global Food-Security Engine', content: 'Tracks global food-security conditions: protein shortages, grain shortages, supply chain failures.\nOutputs: Food-security score, food-security forecast, food-security strategy.' },
+      { num: 914, title: 'Global Food-Security Fusion Engine', content: 'Fuses food-security with: weather, geopolitics, trade.\nOutputs: Food-security fusion score, food-security fusion map, food-security fusion strategy.' },
+      { num: 915, title: 'Global Food-Security Simulation Engine', content: 'Simulates: global famine, protein shortages, grain collapses.\nOutputs: Food-security simulation outcomes, food-security simulation risk, food-security simulation optimization.' },
+      { num: 916, title: 'Global Food-Security Control Tower', content: 'Provides unified command over: export allocation, domestic prioritization, emergency logistics.\nOutputs: Food-security command plan, food-security command optimization.' },
+      { num: 917, title: 'Global Supply Chain Engine 2.0', content: 'Tracks global supply chain: ports, rail, highways, cold chain, processing.\nOutputs: Supply chain score, supply chain forecast, supply chain strategy.' },
+      { num: 918, title: 'Global Supply Chain Fusion Engine 2.0', content: 'Fuses supply chain with: weather, geopolitics, energy.\nOutputs: Supply chain fusion score, supply chain fusion map, supply chain fusion strategy.' },
+      { num: 919, title: 'Global Supply Chain Simulation Engine 2.0', content: 'Simulates: port shutdowns, fuel spikes, labor strikes.\nOutputs: Supply chain simulation outcomes, supply chain simulation risk, supply chain simulation optimization.' },
+      { num: 920, title: 'Global Supply Chain Control Tower 2.0', content: 'Provides unified command over: routing, scheduling, contingency planning.\nOutputs: Supply chain command plan, supply chain command optimization.' },
+      { num: 921, title: 'Global Energy Engine', content: 'Tracks global energy: crude oil, diesel, natural gas, electricity.\nOutputs: Global energy score, global energy forecast, global energy strategy.' },
+      { num: 922, title: 'Global Energy Fusion Engine', content: 'Fuses energy with: logistics, processing, feed.\nOutputs: Energy fusion score, energy fusion map, energy fusion strategy.' },
+      { num: 923, title: 'Global Energy Simulation Engine', content: 'Simulates: oil shocks, diesel shortages, power grid failures.\nOutputs: Energy simulation outcomes, energy simulation risk, energy simulation optimization.' },
+      { num: 924, title: 'Global Energy Control Tower', content: 'Provides unified energy command over: fuel, electricity, backup systems.\nOutputs: Energy command plan, energy command optimization.' },
+      { num: 925, title: 'Global Currency Engine', content: 'Tracks global currency: USD, BRL, AUD, MXN, CAD, CNY.\nOutputs: Currency score, currency forecast, currency strategy.' },
+      { num: 926, title: 'Global Currency Fusion Engine', content: 'Fuses currency with: trade, logistics, packer bids.\nOutputs: Currency fusion score, currency fusion map, currency fusion strategy.' },
+      { num: 927, title: 'Global Currency Simulation Engine', content: 'Simulates: currency crashes, currency surges, currency volatility.\nOutputs: Currency simulation outcomes, currency simulation risk, currency simulation optimization.' },
+      { num: 928, title: 'Global Currency Control Tower', content: 'Provides unified currency command over: export timing, import substitution, hedging.\nOutputs: Currency command plan, currency command optimization.' },
+      { num: 929, title: 'Global Macro Engine', content: 'Tracks global macroeconomic forces: GDP, inflation, interest rates, consumer confidence.\nOutputs: Macro score, macro forecast, macro strategy.' },
+      { num: 930, title: 'Global Macro Fusion Engine', content: 'Fuses macro with: protein demand, feed costs, logistics.\nOutputs: Macro fusion score, macro fusion map, macro fusion strategy.' },
+      { num: 931, title: 'Global Macro Simulation Engine', content: 'Simulates: recession, inflation, economic collapse.\nOutputs: Macro simulation outcomes, macro simulation risk, macro simulation optimization.' },
+      { num: 932, title: 'Global Macro Control Tower', content: 'Provides unified macro command over: marketing, hedging, expansion.\nOutputs: Macro command plan, macro command optimization.' },
+      { num: 933, title: 'Global Risk Engine', content: 'Tracks global risks: weather, geopolitics, energy, currency, logistics.\nOutputs: Global risk score, global risk forecast, global risk strategy.' },
+      { num: 934, title: 'Global Risk Fusion Engine', content: 'Fuses all global risks into one unified model.\nOutputs: Risk fusion score, risk fusion map, risk fusion strategy.' },
+      { num: 935, title: 'Global Risk Simulation Engine', content: 'Simulates: multi-risk cascades, multi-risk shocks.\nOutputs: Risk simulation outcomes, risk simulation risk, risk simulation optimization.' },
+      { num: 936, title: 'Global Risk Control Tower', content: 'Provides unified risk command over: hedging, logistics, marketing.\nOutputs: Risk command plan, risk command optimization.' },
+      { num: 937, title: 'Global Opportunity Engine', content: 'Tracks global opportunities: export surges, currency advantages, supply shortages.\nOutputs: Opportunity score, opportunity forecast, opportunity strategy.' },
+      { num: 938, title: 'Global Opportunity Fusion Engine', content: 'Fuses opportunities with: logistics, processing, marketing.\nOutputs: Opportunity fusion score, opportunity fusion map, opportunity fusion strategy.' },
+      { num: 939, title: 'Global Opportunity Simulation Engine', content: 'Simulates: demand surges, supply collapses, currency advantages.\nOutputs: Opportunity simulation outcomes, opportunity simulation risk, opportunity simulation optimization.' },
+      { num: 940, title: 'Global Opportunity Control Tower', content: 'Provides unified opportunity command over: marketing, timing, logistics.\nOutputs: Opportunity command plan, opportunity command optimization.' },
+      { num: 941, title: 'Global Strategy Engine', content: 'Generates: global risk strategy, global opportunity strategy, global profit strategy.\nOutputs: Global strategy score, global strategy map, global strategy plan.' },
+      { num: 942, title: 'Global Strategy Fusion Engine', content: 'Fuses all global strategies into one unified model.\nOutputs: Strategy fusion score, strategy fusion map, strategy fusion strategy.' },
+      { num: 943, title: 'Global Strategy Simulation Engine', content: 'Simulates: strategic shocks, strategic opportunities.\nOutputs: Strategy simulation outcomes, strategy simulation risk, strategy simulation optimization.' },
+      { num: 944, title: 'Global Strategy Control Tower', content: 'Provides unified global command over: buying, selling, hedging, logistics.\nOutputs: Strategy command plan, strategy command optimization.' },
+      { num: 945, title: 'Global Superstructure Engine', content: 'Builds the overarching global architecture governing all sovereign-scale engines.\nOutputs: Global superstructure score, global superstructure map, global superstructure strategy.' },
+      { num: 946, title: 'Global Superstructure Fusion Engine', content: 'Fuses all global superstructure components into one unified model.\nOutputs: Superstructure fusion score, superstructure fusion map, superstructure fusion strategy.' },
+      { num: 947, title: 'Global Superstructure Simulation Engine', content: 'Simulates: global system shocks, global system opportunities.\nOutputs: Superstructure simulation outcomes, superstructure simulation risk, superstructure simulation optimization.' },
+      { num: 948, title: 'Global Superstructure Control Tower', content: 'Provides unified global command over: logistics, energy, trade, risk, strategy.\nOutputs: Superstructure command plan, superstructure command optimization.' },
+      { num: 949, title: 'Global Integration Engine', content: 'Integrates: all continents, all markets, all species, all logistics, all risks.\nOutputs: Global integration score, global integration map, global integration strategy.' },
+      { num: 950, title: 'Global Master Completion', content: '901–950 tier complete. Full AI-driven geopolitical, national-security, global-trade, food-security, supply chain, energy, currency, macro, risk, opportunity, strategy, and sovereign-scale engines. Full fusion + simulation + control tower architecture. System now 950 sections deep. Only 50 remain.' },
+    ]
+  },
+  {
     category: 'ENTITY STRUCTURE', sections: [
       { num: 76, title: 'Multi-Entity Profit Consolidation Model', content: 'Continental Cattle Co INC: marketing\nRincon Cattle Co LLC: sales rep\nFlying 3 Bar B Livestock LLC: sales rep\nGrand Slam Cattle Co LLC: dispatch\nFull Count Trucking LLC: hauling\nBeeson Bucking Bulls: trucking/overflow\nOutputs: profit per entity, per load, per week, per month, per year, consolidated enterprise profit' },
       { num: 73, title: 'Internal Transfer Pricing Optimizer', content: 'Stages: 95→400 lb, 400→900 lb, 900→1500 lb\nMargins captured at each stage: commission, freight, dispatch, marketing, ownership\nKey principle: capturing every transfer creates enterprise profit even when individual stages show losses' },
@@ -669,7 +723,7 @@ export default function MasterDocument() {
       <SectionHeader
         title="MASTER DOCUMENT"
         subtitle="Continental Cattle Co INC — Master Cattle Economics System (2026 Edition)"
-        badge="Sections 1–900+"
+        badge="Sections 1–950+"
       />
 
       {/* Search */}
@@ -688,7 +742,7 @@ export default function MasterDocument() {
       <div className="flex gap-4 text-xs text-muted-foreground">
         <span>Sections indexed: <span className="text-primary">{SECTIONS.reduce((s, c) => s + c.sections.length, 0)}</span></span>
         <span>Categories: <span className="text-primary">{SECTIONS.length}</span></span>
-        <span>Total system sections: <span className="text-primary">900+</span></span>
+        <span>Total system sections: <span className="text-primary">950+</span></span>
       </div>
 
       {/* Document */}
