@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 // Configure app IDs
 const ADMIN_APP_ID = Deno.env.get('BASE44_APP_ID'); // Current app
-const PUBLIC_APP_ID = 'UPDATE_WITH_PUBLIC_APP_ID'; // Set this
+const PUBLIC_APP_ID = Deno.env.get('PUBLIC_APP_ID'); // Retrieved from environment
 
 Deno.serve(async (req) => {
   try {
@@ -14,8 +14,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 
-    if (!PUBLIC_APP_ID || PUBLIC_APP_ID === 'UPDATE_WITH_PUBLIC_APP_ID') {
-      return Response.json({ error: 'PUBLIC_APP_ID not configured' }, { status: 500 });
+    if (!PUBLIC_APP_ID) {
+      return Response.json({ error: 'PUBLIC_APP_ID environment variable not set' }, { status: 500 });
     }
 
     const { direction = 'both' } = await req.json();
