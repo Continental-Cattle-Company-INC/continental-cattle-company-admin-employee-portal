@@ -13,20 +13,28 @@ export default function PullToRefresh({ onRefresh, children }) {
     const container = containerRef.current;
     if (!container) return;
 
+    let pullActive = false;
+
     const handleTouchStart = (e) => {
       startYRef.current = e.touches[0].clientY;
+      pullActive = false;
     };
 
     const handleTouchMove = (e) => {
       const currentY = e.touches[0].clientY;
       const pullDist = currentY - startYRef.current;
       
-      // Only activate pull-to-refresh at top of scroll AND pulling downward
-      if (container.scrollTop === 0 && pullDist > 0) {
+      // Only activate pull-to-refresh: at top AND pulling downward beyond threshold
+      if (container.scrollTop === 0 && pullDist > 10) {
+        pullActive = true;
         e.preventDefault();
         setPullDistance(Math.min(pullDist, 150));
-      } else {
-        // Allow all normal scrolling
+      } else if (pullActive && pullDist <= 10) {
+        // Release pull state when gesture stops
+        pullActive = false;
+        setPullDistance(0);
+      } else if (!pullActive) {
+        // Never block scrolling when pull is not active
         setPullDistance(0);
       }
     };
@@ -38,6 +46,7 @@ export default function PullToRefresh({ onRefresh, children }) {
         setIsRefreshing(false);
       }
       setPullDistance(0);
+      pullActive = false;
       startYRef.current = 0;
     };
 
