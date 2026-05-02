@@ -480,6 +480,60 @@ const SECTIONS = [
     ]
   },
   {
+    category: 'NATIONAL EXPANSION & INFRASTRUCTURE ENGINES (751–800)', sections: [
+      { num: 751, title: 'AI-Driven National Expansion Engine', content: 'Tracks national expansion opportunities: regional supply gaps, regional demand surges, infrastructure availability, labor availability, regulatory environments.\nOutputs: National expansion score, national expansion forecast, national expansion strategy.' },
+      { num: 752, title: 'National Expansion Fusion Engine', content: 'Fuses expansion data with: market cycles, feed availability, weather patterns, logistics networks.\nOutputs: Expansion fusion score, expansion fusion map, expansion fusion strategy.' },
+      { num: 753, title: 'National Expansion Simulation Engine', content: 'Simulates: multi-yard expansion, multi-state expansion, multi-region expansion.\nOutputs: Expansion simulation outcomes, expansion simulation risk, expansion simulation optimization.' },
+      { num: 754, title: 'National Expansion Control Tower', content: 'Provides unified command over: site selection, infrastructure buildout, capital allocation, workforce deployment.\nOutputs: Expansion command plan, expansion command optimization.' },
+      { num: 755, title: 'Yard Architecture Engine', content: 'Designs optimal yard architecture: pen layout, water systems, feed systems, drainage systems, shade systems.\nOutputs: Yard architecture score, yard architecture blueprint, yard architecture optimization plan.' },
+      { num: 756, title: 'Yard Architecture Fusion Engine', content: 'Fuses yard architecture with: weather, soil, water, logistics.\nOutputs: Architecture fusion score, architecture fusion map, architecture fusion strategy.' },
+      { num: 757, title: 'Yard Architecture Simulation Engine', content: 'Simulates: pen flow, water flow, feed flow, cattle movement.\nOutputs: Architecture simulation outcomes, architecture simulation risk, architecture simulation optimization.' },
+      { num: 758, title: 'Yard Architecture Control Tower', content: 'Provides unified command over: pen allocation, cattle flow, feed delivery, water distribution.\nOutputs: Architecture command plan, architecture command optimization.' },
+      { num: 759, title: 'Multi-Yard Engine', content: 'Tracks interactions across multiple yards: capacity, performance, weather, feed, logistics.\nOutputs: Multi-yard score, multi-yard forecast, multi-yard strategy.' },
+      { num: 760, title: 'Multi-Yard Fusion Engine', content: 'Fuses multi-yard data into one unified model.\nOutputs: Multi-yard fusion score, multi-yard fusion map, multi-yard fusion strategy.' },
+      { num: 761, title: 'Multi-Yard Simulation Engine', content: 'Simulates: yard-to-yard cattle flow, yard-to-yard feed flow, yard-to-yard weather impacts.\nOutputs: Multi-yard simulation outcomes, multi-yard simulation risk, multi-yard simulation optimization.' },
+      { num: 762, title: 'Multi-Yard Control Tower', content: 'Provides unified command over: yard scheduling, yard staffing, yard logistics.\nOutputs: Multi-yard command plan, multi-yard command optimization.' },
+      { num: 763, title: 'National Logistics Grid Engine', content: 'Builds a national logistics grid: trucking lanes, rail lanes, highway corridors, feed corridors.\nOutputs: Logistics grid score, logistics grid map, logistics grid strategy.' },
+      { num: 764, title: 'National Logistics Fusion Engine', content: 'Fuses logistics with: weather, fuel, market conditions.\nOutputs: Logistics fusion score, logistics fusion map, logistics fusion strategy.' },
+      { num: 765, title: 'National Logistics Simulation Engine', content: 'Simulates: fuel spikes, highway closures, rail congestion.\nOutputs: Logistics simulation outcomes, logistics simulation risk, logistics simulation optimization.' },
+      { num: 766, title: 'National Logistics Control Tower', content: 'Provides unified command over: trucking, dispatch, routing, scheduling.\nOutputs: Logistics command plan, logistics command optimization.' },
+      { num: 767, title: 'National Feed Grid Engine', content: 'Tracks national feed availability: corn, soybean meal, DDG, wheat, byproducts.\nOutputs: Feed grid score, feed grid forecast, feed grid strategy.' },
+      { num: 768, title: 'National Feed Fusion Engine', content: 'Fuses feed with: weather, logistics, market cycles.\nOutputs: Feed fusion score, feed fusion map, feed fusion strategy.' },
+      { num: 769, title: 'National Feed Simulation Engine', content: 'Simulates: feed shortages, feed surpluses, feed price shocks.\nOutputs: Feed simulation outcomes, feed simulation risk, feed simulation optimization.' },
+      { num: 770, title: 'National Feed Control Tower', content: 'Provides unified feed command over: procurement, storage, delivery.\nOutputs: Feed command plan, feed command optimization.' },
+      { num: 771, title: 'National Water Grid Engine', content: 'Tracks national water availability: aquifers, rivers, lakes, municipal systems.\nOutputs: Water grid score, water grid forecast, water grid strategy.' },
+      { num: 772, title: 'National Water Fusion Engine', content: 'Fuses water with: weather, land, herd size.\nOutputs: Water fusion score, water fusion map, water fusion strategy.' },
+      { num: 773, title: 'National Water Simulation Engine', content: 'Simulates: drought, contamination, water shortages.\nOutputs: Water simulation outcomes, water simulation risk, water simulation optimization.' },
+      { num: 774, title: 'National Water Control Tower', content: 'Provides unified water command over: delivery, storage, quality.\nOutputs: Water command plan, water command optimization.' },
+      { num: 775, title: 'National Infrastructure Engine', content: 'Tracks infrastructure: roads, rail, power, water, processing plants.\nOutputs: Infrastructure score, infrastructure forecast, infrastructure strategy.' },
+      { num: 776, title: 'National Infrastructure Fusion Engine', content: 'Fuses infrastructure with: logistics, weather, market conditions.\nOutputs: Infrastructure fusion score, infrastructure fusion map, infrastructure fusion strategy.' },
+      { num: 777, title: 'National Infrastructure Simulation Engine', content: 'Simulates: infrastructure failures, infrastructure overload, infrastructure expansion.\nOutputs: Infrastructure simulation outcomes, infrastructure simulation risk, infrastructure simulation optimization.' },
+      { num: 778, title: 'National Infrastructure Control Tower', content: 'Provides unified infrastructure command over: expansion, maintenance, risk.\nOutputs: Infrastructure command plan, infrastructure command optimization.' },
+      { num: 779, title: 'National Processing Engine', content: 'Tracks processing capacity: kill capacity, fabrication capacity, cold storage, labor.\nOutputs: Processing score, processing forecast, processing strategy.' },
+      { num: 780, title: 'National Processing Fusion Engine', content: 'Fuses processing with: market, feed, weather, logistics.\nOutputs: Processing fusion score, processing fusion map, processing fusion strategy.' },
+      { num: 781, title: 'National Processing Simulation Engine', content: 'Simulates: labor shortages, equipment failures, capacity surges.\nOutputs: Processing simulation outcomes, processing simulation risk, processing simulation optimization.' },
+      { num: 782, title: 'National Processing Control Tower', content: 'Provides unified processing command over: scheduling, flow, risk.\nOutputs: Processing command plan, processing command optimization.' },
+      { num: 783, title: 'National Staffing Engine', content: 'Tracks staffing: labor availability, labor cost, labor efficiency.\nOutputs: Staffing score, staffing forecast, staffing strategy.' },
+      { num: 784, title: 'National Staffing Fusion Engine', content: 'Fuses staffing with: weather, market, logistics.\nOutputs: Staffing fusion score, staffing fusion map, staffing fusion strategy.' },
+      { num: 785, title: 'National Staffing Simulation Engine', content: 'Simulates: labor shortages, labor surges, labor disruptions.\nOutputs: Staffing simulation outcomes, staffing simulation risk, staffing simulation optimization.' },
+      { num: 786, title: 'National Staffing Control Tower', content: 'Provides unified staffing command over: hiring, scheduling, deployment.\nOutputs: Staffing command plan, staffing command optimization.' },
+      { num: 787, title: 'National Safety Engine', content: 'Tracks safety: yard safety, transport safety, processing safety.\nOutputs: Safety score, safety forecast, safety optimization plan.' },
+      { num: 788, title: 'National Safety Fusion Engine', content: 'Fuses safety with: weather, labor, logistics.\nOutputs: Safety fusion score, safety fusion map, safety fusion strategy.' },
+      { num: 789, title: 'National Safety Simulation Engine', content: 'Simulates: accidents, weather hazards, equipment failures.\nOutputs: Safety simulation outcomes, safety simulation risk, safety simulation optimization.' },
+      { num: 790, title: 'National Safety Control Tower', content: 'Provides unified safety command over: training, equipment, procedures.\nOutputs: Safety command plan, safety command optimization.' },
+      { num: 791, title: 'National Energy Engine', content: 'Tracks energy: fuel, electricity, heating, cooling.\nOutputs: Energy score, energy forecast, energy optimization plan.' },
+      { num: 792, title: 'National Energy Fusion Engine', content: 'Fuses energy with: weather, logistics, processing.\nOutputs: Energy fusion score, energy fusion map, energy fusion strategy.' },
+      { num: 793, title: 'National Energy Simulation Engine', content: 'Simulates: fuel spikes, power outages, energy shortages.\nOutputs: Energy simulation outcomes, energy simulation risk, energy simulation optimization.' },
+      { num: 794, title: 'National Energy Control Tower', content: 'Provides unified energy command over: fuel, electricity, heating, cooling.\nOutputs: Energy command plan, energy command optimization.' },
+      { num: 795, title: 'National Superstructure Engine', content: 'Builds the overarching national architecture governing all national engines.\nOutputs: National superstructure score, national superstructure map, national superstructure strategy.' },
+      { num: 796, title: 'National Superstructure Fusion Engine', content: 'Fuses all national-level components into one unified model.\nOutputs: Superstructure fusion score, superstructure fusion map, superstructure fusion strategy.' },
+      { num: 797, title: 'National Superstructure Simulation Engine', content: 'Simulates: national-scale shocks, national-scale opportunities.\nOutputs: Superstructure simulation outcomes, superstructure simulation risk, superstructure simulation optimization.' },
+      { num: 798, title: 'National Superstructure Control Tower', content: 'Provides unified national command over: logistics, infrastructure, staffing, energy, processing.\nOutputs: Superstructure command plan, superstructure command optimization.' },
+      { num: 799, title: 'National Integration Engine', content: 'Integrates: all yards, all logistics, all feed systems, all water systems, all processing systems.\nOutputs: National integration score, national integration map, national integration strategy.' },
+      { num: 800, title: 'National Master Completion', content: '751–800 tier complete. Full AI-driven national expansion, infrastructure, construction, multi-yard architecture, and operational scaling engines. Full logistics grid, feed grid, water grid, processing, staffing, safety, energy, and superstructure integration. Full fusion + simulation + control tower architecture.' },
+    ]
+  },
+  {
     category: 'ENTITY STRUCTURE', sections: [
       { num: 76, title: 'Multi-Entity Profit Consolidation Model', content: 'Continental Cattle Co INC: marketing\nRincon Cattle Co LLC: sales rep\nFlying 3 Bar B Livestock LLC: sales rep\nGrand Slam Cattle Co LLC: dispatch\nFull Count Trucking LLC: hauling\nBeeson Bucking Bulls: trucking/overflow\nOutputs: profit per entity, per load, per week, per month, per year, consolidated enterprise profit' },
       { num: 73, title: 'Internal Transfer Pricing Optimizer', content: 'Stages: 95→400 lb, 400→900 lb, 900→1500 lb\nMargins captured at each stage: commission, freight, dispatch, marketing, ownership\nKey principle: capturing every transfer creates enterprise profit even when individual stages show losses' },
@@ -507,7 +561,7 @@ export default function MasterDocument() {
       <SectionHeader
         title="MASTER DOCUMENT"
         subtitle="Continental Cattle Co INC — Master Cattle Economics System (2026 Edition)"
-        badge="Sections 1–700+"
+        badge="Sections 1–800+"
       />
 
       {/* Search */}
@@ -526,7 +580,7 @@ export default function MasterDocument() {
       <div className="flex gap-4 text-xs text-muted-foreground">
         <span>Sections indexed: <span className="text-primary">{SECTIONS.reduce((s, c) => s + c.sections.length, 0)}</span></span>
         <span>Categories: <span className="text-primary">{SECTIONS.length}</span></span>
-        <span>Total system sections: <span className="text-primary">750+</span></span>
+        <span>Total system sections: <span className="text-primary">800+</span></span>
       </div>
 
       {/* Document */}
