@@ -25,15 +25,14 @@ const navItems = [
 ];
 
 export default function Layout() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-background overflow-hidden">
       <MobileHeader />
       <MobileTabBar />
-      {/* Sidebar — hidden on mobile */}
-      <aside className={`hidden md:flex ${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 flex-shrink-0 bg-card border-r border-border flex-col`}>
+      {/* Sidebar — fixed width, always visible on desktop */}
+      <aside className="hidden md:flex w-64 flex-shrink-0 bg-card border-r border-border flex-col">
         {/* Logo */}
         <div className="p-4 border-b border-border flex items-center gap-3">
           <div className="w-10 h-10 flex-shrink-0 rounded overflow-hidden bg-[#D2782A]">
@@ -43,18 +42,10 @@ export default function Layout() {
               className="w-full h-full object-cover"
             />
           </div>
-          {sidebarOpen && (
-            <div className="overflow-hidden">
-              <div className="font-bebas text-primary text-lg leading-none">Continental Cattle Co</div>
-              <div className="text-muted-foreground text-xs">Lane Beeson · Jeff Lewey</div>
-            </div>
-          )}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-          </button>
+          <div className="overflow-hidden">
+            <div className="font-bebas text-primary text-lg leading-none">Continental Cattle Co</div>
+            <div className="text-muted-foreground text-xs">Lane Beeson · Jeff Lewey</div>
+          </div>
         </div>
 
         {/* Nav */}
@@ -72,22 +63,18 @@ export default function Layout() {
                 }`}
               >
                 <item.icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-primary' : ''}`} />
-                {sidebarOpen && (
-                  <span className="text-sm font-medium truncate">{item.label}</span>
-                )}
-                {sidebarOpen && active && <ChevronRight className="w-3 h-3 ml-auto text-primary" />}
+                <span className="text-sm font-medium truncate">{item.label}</span>
+                {active && <ChevronRight className="w-3 h-3 ml-auto text-primary" />}
               </Link>
             );
           })}
         </nav>
 
         {/* Footer */}
-        {sidebarOpen && (
-          <div className="p-4 border-t border-border">
-            <div className="text-xs text-muted-foreground">2026 Master System</div>
-            <div className="text-xs text-primary mt-0.5">v1.0 — Live</div>
-          </div>
-        )}
+        <div className="p-4 border-t border-border">
+          <div className="text-xs text-muted-foreground">2026 Master System</div>
+          <div className="text-xs text-primary mt-0.5">v1.0 — Live</div>
+        </div>
       </aside>
 
       {/* Main */}
