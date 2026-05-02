@@ -1,0 +1,55 @@
+{
+  "name": "CarcassQualityBenchmark",
+  "type": "object",
+  "properties": {
+    "benchmark_name": {
+      "type": "string",
+      "description": "Benchmark source (e.g., NBQA 2022, USDA Grading)"
+    },
+    "plant_type": {
+      "type": "string",
+      "enum": [
+        "integrated",
+        "regional",
+        "independent",
+        "niche"
+      ],
+      "description": "Plant category for comparison"
+    },
+    "prime_percent": {
+      "type": "number",
+      "description": "Expected % Prime grade"
+    },
+    "choice_percent": {
+      "type": "number",
+      "description": "Expected % Choice grade"
+    },
+    "select_percent": {
+      "type": "number",
+      "description": "Expected % Select grade"
+    },
+    "yg2_percent": {
+      "type": "number",
+      "description": "Expected % Yield Grade 2"
+    },
+    "yg3_percent": {
+      "type": "number",
+      "description": "Expected % Yield Grade 3"
+    },
+    "yg4_percent": {
+      "type": "number",
+      "description": "Expected % Yield Grade 4"
+    },
+    "trim_loss_percent": {
+      "type": "number",
+      "description": "Average trim loss % by plant type"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "benchmark_name",
+    "plant_type"
+  ]
+}

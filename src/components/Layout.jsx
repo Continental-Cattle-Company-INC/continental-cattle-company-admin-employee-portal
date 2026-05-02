@@ -19,6 +19,7 @@ const navItems = [
   { label: 'Entity Financials', icon: DollarSign, path: '/entity-financials' },
   { label: 'Feed & Health', icon: Pill, path: '/feed-health' },
   { label: 'Trade Analytics', icon: Globe, path: '/trade-analytics' },
+  { label: 'Carcass Quality', icon: ShieldAlert, path: '/carcass-quality' },
   { label: 'Sensitivity', icon: ShieldAlert, path: '/sensitivity' },
   { label: 'Trucking', icon: Truck, path: '/trucking' },
   { label: 'Global Intel', icon: Globe, path: '/global' },

@@ -1,0 +1,80 @@
+{
+  "name": "CarcassOutcomeActual",
+  "type": "object",
+  "properties": {
+    "sale_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "cattle_lot_id": {
+      "type": "string",
+      "description": "Link to CattleLot"
+    },
+    "plant_name": {
+      "type": "string"
+    },
+    "plant_type": {
+      "type": "string",
+      "enum": [
+        "integrated",
+        "regional",
+        "independent",
+        "niche"
+      ]
+    },
+    "head_count": {
+      "type": "number"
+    },
+    "prime_count": {
+      "type": "number"
+    },
+    "choice_count": {
+      "type": "number"
+    },
+    "select_count": {
+      "type": "number"
+    },
+    "other_count": {
+      "type": "number"
+    },
+    "avg_carcass_weight": {
+      "type": "number"
+    },
+    "avg_fat_thickness": {
+      "type": "number",
+      "description": "Inches"
+    },
+    "yg2_count": {
+      "type": "number"
+    },
+    "yg3_count": {
+      "type": "number"
+    },
+    "yg4_count": {
+      "type": "number"
+    },
+    "avg_trim_loss_percent": {
+      "type": "number"
+    },
+    "variance_vs_benchmark": {
+      "type": "string",
+      "enum": [
+        "within_range",
+        "above_expected",
+        "below_expected"
+      ],
+      "description": "Grading outcome variance flag"
+    },
+    "risk_flag": {
+      "type": "boolean",
+      "description": "True if significant deviation from NBQA"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "sale_date",
+    "plant_name"
+  ]
+}

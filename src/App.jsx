@@ -26,6 +26,7 @@ import OperationalPrograms from './pages/OperationalPrograms';
 import EntityFinancials from './pages/EntityFinancials';
 import FeedAndHealth from './pages/FeedAndHealth';
 import TradeAnalytics from './pages/TradeAnalytics';
+import CarcassQualityValidation from './pages/CarcassQualityValidation';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -67,6 +68,7 @@ const AuthenticatedApp = () => {
         <Route path="/entity-financials" element={<EntityFinancials />} />
         <Route path="/feed-health" element={<FeedAndHealth />} />
         <Route path="/trade-analytics" element={<TradeAnalytics />} />
+        <Route path="/carcass-quality" element={<CarcassQualityValidation />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
