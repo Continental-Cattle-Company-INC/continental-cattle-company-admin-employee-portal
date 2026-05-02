@@ -29,6 +29,7 @@ import FeedAndHealth from './pages/FeedAndHealth';
 import TradeAnalytics from './pages/TradeAnalytics';
 import CarcassQualityValidation from './pages/CarcassQualityValidation';
 import SyncMonitor from './pages/SyncMonitor';
+import AIControlCenter from './pages/AIControlCenter';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -73,6 +74,7 @@ const AuthenticatedApp = () => {
         <Route path="/carcass-quality" element={<RoleGate requiredRole={['admin', 'manager']}><CarcassQualityValidation /></RoleGate>} />
         <Route path="/approvals" element={<RoleGate requiredRole="admin"><Approvals /></RoleGate>} />
         <Route path="/sync-monitor" element={<RoleGate requiredRole="admin"><SyncMonitor /></RoleGate>} />
+        <Route path="/ai-control" element={<RoleGate requiredRole="admin"><AIControlCenter /></RoleGate>} />
         <Route path="/settings" element={<RoleGate requiredRole="admin"><Settings /></RoleGate>} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
