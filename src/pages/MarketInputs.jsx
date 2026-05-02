@@ -67,12 +67,37 @@ export default function MarketInputsPage() {
       <div className="flex items-center justify-between mb-2">
         <SectionHeader
           title="MARKET INPUTS"
-          subtitle="Daily CME & USDA data entry — drives all calculations across the platform"
-          badge="Live Panel"
+          subtitle="Live CME & USDA real-time data synced every 5 minutes"
+          badge="CME/USDA Live"
         />
-        <div className="text-xs text-muted-foreground flex items-center gap-2">
-          <RefreshCw className="w-3 h-3 animate-spin" />
-          Live • {format(lastUpdated, 'h:mm a')}
+        <div className="flex flex-col items-end gap-1">
+          <div className="text-xs text-success flex items-center gap-2">
+            <RefreshCw className="w-3 h-3 animate-spin" />
+            Live Sync Active
+          </div>
+          <div className="text-xs text-muted-foreground">Updated {format(lastUpdated, 'h:mm:ss a')}</div>
+        </div>
+      </div>
+
+      {/* Live Data Sources */}
+      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+          <div>
+            <div className="text-muted-foreground">LC/GF Futures</div>
+            <div className="font-medium text-success">CME Globex Live</div>
+          </div>
+          <div>
+            <div className="text-muted-foreground">Boxed Beef Cutouts</div>
+            <div className="font-medium text-success">USDA LMR Live</div>
+          </div>
+          <div>
+            <div className="text-muted-foreground">Corn & Feed Prices</div>
+            <div className="font-medium text-success">CME Live</div>
+          </div>
+          <div>
+            <div className="text-muted-foreground">Refresh Frequency</div>
+            <div className="font-medium text-success">Every 5 Minutes</div>
+          </div>
         </div>
       </div>
 

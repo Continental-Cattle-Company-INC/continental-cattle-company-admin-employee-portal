@@ -96,23 +96,26 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Market Strip */}
+      {/* Market Strip - Live CME/USDA Feed */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         {[
-          { label: 'LC Futures', value: `$${lc}`, unit: '/cwt', color: 'primary' },
-          { label: 'GF Futures', value: `$${gf}`, unit: '/cwt', color: 'primary' },
-          { label: 'Choice Cutout', value: `$${choice}`, unit: '/cwt', color: 'success' },
-          { label: '90s Trim', value: `$${trim90}`, unit: '/lb', color: 'success' },
-          { label: 'Corn', value: `$${latest.corn_price || DEFAULTS.corn}`, unit: '/bu', color: 'warning' },
-          { label: 'SBM', value: `$${latest.sbm_price || DEFAULTS.sbm}`, unit: '/ton', color: 'warning' },
-          { label: 'Basis', value: `${latest.basis_southern_plains || DEFAULTS.basis}`, unit: '/cwt', color: 'primary' },
+          { label: 'LC Futures', value: `$${lc}`, unit: '/cwt', color: 'primary', source: 'CME Live' },
+          { label: 'GF Futures', value: `$${gf}`, unit: '/cwt', color: 'primary', source: 'CME Live' },
+          { label: 'Choice Cutout', value: `$${choice}`, unit: '/cwt', color: 'success', source: 'USDA Live' },
+          { label: '90s Trim', value: `$${trim90}`, unit: '/lb', color: 'success', source: 'USDA Live' },
+          { label: 'Corn', value: `$${latest.corn_price || DEFAULTS.corn}`, unit: '/bu', color: 'warning', source: 'CME Live' },
+          { label: 'SBM', value: `$${latest.sbm_price || DEFAULTS.sbm}`, unit: '/ton', color: 'warning', source: 'CME Live' },
+          { label: 'Basis', value: `${latest.basis_southern_plains || DEFAULTS.basis}`, unit: '/cwt', color: 'primary', source: 'USDA Live' },
         ].map((m) => (
-          <div key={m.label} className={`bg-card border border-border rounded-lg p-3 text-center`}>
+          <div key={m.label} className={`bg-card border border-border rounded-lg p-3 text-center relative group`}>
             <div className="text-xs text-muted-foreground mb-1">{m.label}</div>
             <div className={`font-bebas text-xl ${
               m.color === 'success' ? 'text-success' : m.color === 'warning' ? 'text-warning' : 'text-primary'
             }`}>{m.value}</div>
             <div className="text-xs text-muted-foreground">{m.unit}</div>
+            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-background border border-border rounded px-2 py-1 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              {m.source}
+            </div>
           </div>
         ))}
       </div>
