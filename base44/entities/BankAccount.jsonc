@@ -1,0 +1,123 @@
+{
+  "name": "BankAccount",
+  "type": "object",
+  "properties": {
+    "account_holder_type": {
+      "type": "string",
+      "enum": [
+        "user",
+        "entity",
+        "trust"
+      ],
+      "description": "Type of account holder"
+    },
+    "account_holder_id": {
+      "type": "string",
+      "description": "User email, Entity name, or Trust name"
+    },
+    "institution_name": {
+      "type": "string",
+      "description": "Bank or financial institution name"
+    },
+    "account_type": {
+      "type": "string",
+      "enum": [
+        "checking",
+        "savings",
+        "credit"
+      ],
+      "description": "Type of bank account"
+    },
+    "account_number_last4": {
+      "type": "string",
+      "description": "Last 4 digits of account number"
+    },
+    "routing_number": {
+      "type": "string",
+      "description": "Bank routing number"
+    },
+    "account_balance": {
+      "type": "number",
+      "description": "Current account balance (synced from bank)"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD",
+      "description": "Account currency"
+    },
+    "oauth_provider": {
+      "type": "string",
+      "enum": [
+        "intuit",
+        "plaid",
+        "manual"
+      ],
+      "description": "How account was linked"
+    },
+    "oauth_access_token": {
+      "type": "string",
+      "description": "Encrypted OAuth access token"
+    },
+    "last_synced": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last sync timestamp"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Account is active and linked"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "account_holder_type",
+    "account_holder_id",
+    "institution_name"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "manager",
+            "user"
+          ]
+        }
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "manager",
+            "user"
+          ]
+        }
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "manager"
+          ]
+        }
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin"
+          ]
+        }
+      }
+    }
+  }
+}

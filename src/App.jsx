@@ -28,6 +28,7 @@ import PurchaseCalculator from './pages/PurchaseCalculator';
 import OperationalPrograms from './pages/OperationalPrograms';
 import EntityFinancials from './pages/EntityFinancials';
 import FeedAndHealth from './pages/FeedAndHealth';
+import BankLinking from './pages/BankLinking';
 import TradeAnalytics from './pages/TradeAnalytics';
 import CarcassQualityValidation from './pages/CarcassQualityValidation';
 import SyncMonitor from './pages/SyncMonitor';
@@ -97,6 +98,7 @@ const AuthenticatedApp = () => {
         <Route path="/system-health" element={<RoleGate requiredRole="admin"><SystemHealthDashboard /></RoleGate>} />
         <Route path="/ai-management" element={<RoleGate requiredRole="admin"><AIPlatformManagement /></RoleGate>} />
         <Route path="/ai-admin" element={<RoleGate requiredRole="admin"><AIAdminControl /></RoleGate>} />
+        <Route path="/bank-linking" element={<BankLinking />} />
         <Route path="/settings" element={<RoleGate requiredRole="admin"><Settings /></RoleGate>} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
