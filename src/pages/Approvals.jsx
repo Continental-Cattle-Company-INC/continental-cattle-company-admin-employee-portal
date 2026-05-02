@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { RefreshCw, CheckCircle, XCircle, Clock, User, ShoppingCart, Truck, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
 import { useAuth } from '@/lib/AuthContext';
 import SectionHeader from '@/components/SectionHeader';
-import { CheckCircle, XCircle, Clock, User, ShoppingCart, Truck, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
 
 const STATUS_STYLES = {
   pending:   'bg-warning/15 text-warning border-warning/20',
@@ -124,16 +125,41 @@ export default function Approvals() {
   const [tab, setTab] = useState('accounts');
   const [filter, setFilter] = useState('pending');
   const qc = useQueryClient();
+  const [lastSync, setLastSync] = useState(new Date());
 
   const { data: accounts = [] } = useQuery({
     queryKey: ['customerAccounts'],
     queryFn: () => base44.entities.CustomerAccount.list('-created_date', 100),
+    staleTime: 5000,
+    refetchInterval: 15000,
   });
 
   const { data: orders = [] } = useQuery({
     queryKey: ['publicOrders'],
     queryFn: () => base44.entities.PublicOrder.list('-created_date', 100),
+    staleTime: 5000,
+    refetchInterval: 15000,
   });
+
+  // Real-time sync
+  useEffect(() => {
+    const accountUnsub = base44.entities.CustomerAccount.subscribe((event) => {
+      qc.invalidateQueries({ queryKey: ['customerAccounts'] });
+      setLastSync(new Date());
+      toast.success(`Account ${event.type}d in real-time`);
+    });
+
+    const orderUnsub = base44.entities.PublicOrder.subscribe((event) => {
+      qc.invalidateQueries({ queryKey: ['publicOrders'] });
+      setLastSync(new Date());
+      toast.success(`Order ${event.type}d in real-time`);
+    });
+
+    return () => {
+      accountUnsub();
+      orderUnsub();
+    };
+  }, [qc]);
 
   const updateAccount = useMutation({
     mutationFn: ({ id, status }) => base44.entities.CustomerAccount.update(id, { status, reviewed_date: new Date().toISOString().split('T')[0] }),
@@ -166,11 +192,17 @@ export default function Approvals() {
 
   return (
     <div className="p-6 space-y-6">
-      <SectionHeader
-        title="APPROVALS DASHBOARD"
-        subtitle="Manage customer account requests and incoming buy/sell/haul orders"
-        badge="Admin Only"
-      />
+      <div className="flex items-center justify-between">
+        <SectionHeader
+          title="APPROVALS DASHBOARD"
+          subtitle="Manage customer account requests and incoming buy/sell/haul orders"
+          badge="Admin Only"
+        />
+        <div className="text-xs text-muted-foreground flex items-center gap-2">
+          <RefreshCw className="w-3 h-3 animate-spin" />
+          Synced {format(lastSync, 'h:mm:ss a')}
+        </div>
+      </div>
 
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import SectionHeader from '@/components/SectionHeader';
-import { Plus, X, Beef } from 'lucide-react';
+import { Plus, X, Beef, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -35,12 +35,26 @@ export default function CattleLots() {
   const [form, setForm] = useState(BLANK_FORM);
   const [filterEntity, setFilterEntity] = useState('all');
   const [filterStatus, setFilterStatus] = useState('active');
+  const [lastSync, setLastSync] = useState(new Date());
 
   const { data: lots } = useQuery({
     queryKey: ['cattleLots'],
     queryFn: () => base44.entities.CattleLot.list('-purchase_date'),
     initialData: [],
+    staleTime: 5000,
+    refetchInterval: 15000,
   });
+
+  // Real-time sync on mount and interval
+  useEffect(() => {
+    const unsubscribe = base44.entities.CattleLot.subscribe((event) => {
+      qc.invalidateQueries({ queryKey: ['cattleLots'] });
+      setLastSync(new Date());
+      toast.success(`Lot ${event.type === 'create' ? 'created' : event.type === 'update' ? 'updated' : 'deleted'} in real-time`);
+    });
+
+    return unsubscribe;
+  }, [qc]);
 
   const createMut = useMutation({
     mutationFn: (d) => base44.entities.CattleLot.create(d),
@@ -64,7 +78,13 @@ export default function CattleLots() {
 
   return (
     <div className="p-6 space-y-6">
-      <SectionHeader title="CATTLE LOTS" subtitle="Track all active lots across entities and stages" badge="Live" />
+      <div className="flex items-center justify-between">
+        <SectionHeader title="CATTLE LOTS" subtitle="Track all active lots across entities and stages" badge="Live" />
+        <div className="text-xs text-muted-foreground flex items-center gap-2">
+          <RefreshCw className="w-3 h-3 animate-spin" />
+          Synced {format(lastSync, 'h:mm:ss a')}
+        </div>
+      </div>
 
       {/* Filters + Stats */}
       <div className="flex flex-wrap gap-3 items-center justify-between">
