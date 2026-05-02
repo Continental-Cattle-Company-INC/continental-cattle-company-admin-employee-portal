@@ -36,9 +36,10 @@ const navItemsConfig = [
 ];
 
 export default function Layout() {
-  const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { user } = useAuth();
+   const location = useLocation();
+   const [sidebarOpen, setSidebarOpen] = useState(true);
+   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+   const { user } = useAuth();
 
   // Filter nav items by user role
   const navItems = navItemsConfig.filter(item => 
@@ -47,8 +48,8 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen bg-background flex-col md:flex-row">
-      {/* Sidebar - Hidden on mobile */}
-      <aside className={`hidden md:flex ${sidebarOpen ? 'md:w-56' : 'md:w-0'} bg-card border-r border-border flex-col overflow-hidden transition-all duration-300`}>
+      {/* Sidebar - Desktop + Mobile Modal */}
+       <aside className={`${mobileMenuOpen ? 'fixed inset-0 z-50 w-56' : 'hidden'} md:static md:flex ${sidebarOpen ? 'md:w-56' : 'md:w-0'} bg-card border-r border-border flex-col overflow-hidden transition-all duration-300`}>
         {/* Logo */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-3">
@@ -93,22 +94,37 @@ export default function Layout() {
         </div>
       </aside>
 
-      {/* Mobile Header - Shown only on mobile */}
-      {typeof window !== 'undefined' && window.innerWidth < 768 && (
-        <MobileHeader />
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 z-40 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
       )}
 
+      {/* Mobile Header - Shown only on mobile */}
+      <MobileHeader onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} mobileMenuOpen={mobileMenuOpen} />
+
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto flex flex-col md:mt-0 mt-0">
-        <div className="hidden md:flex items-center gap-2 p-4 border-b border-border bg-card/50">
+      <main className="flex-1 overflow-y-auto flex flex-col w-full">
+        <div className="flex md:flex items-center gap-2 p-4 border-b border-border bg-card/50">
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-1 hover:bg-secondary rounded-md transition-colors"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+          {/* Desktop Sidebar Toggle */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1 hover:bg-secondary rounded-md transition-colors"
+            className="hidden md:flex p-1 hover:bg-secondary rounded-md transition-colors"
             aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
           >
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
-        </div>
+          </div>
         <div className="flex-1 overflow-y-auto pb-20 md:pb-0">
           <Outlet />
         </div>
