@@ -60,7 +60,31 @@
       "allowed_operations": [
         "read"
       ]
+    },
+    {
+      "function_name": "masterOperationsOrchestrator",
+      "description": "Trigger orchestrator audits"
+    },
+    {
+      "function_name": "fetchLiveMarketData",
+      "description": "Pull latest CME/USDA market data"
+    },
+    {
+      "function_name": "validateCrossDomainSync",
+      "description": "Cross-check public/admin domain data integrity"
     }
   ],
+  "app_user_connector_configs": [],
+  "selected_skill_names": [],
+  "selected_workspace_skill_ids": [],
+  "model": "automatic",
+  "whatsapp_greeting": null,
+  "telegram_greeting": null,
+  "line_greeting": null,
+  "memory_config": {
+    "enabled": true,
+    "scope": "both",
+    "instructions": null
+  },
   "name": "market_operations_ai"
 }

@@ -30,6 +30,7 @@ import TradeAnalytics from './pages/TradeAnalytics';
 import CarcassQualityValidation from './pages/CarcassQualityValidation';
 import SyncMonitor from './pages/SyncMonitor';
 import AIControlCenter from './pages/AIControlCenter';
+import MasterControlDashboard from './pages/MasterControlDashboard';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -75,6 +76,7 @@ const AuthenticatedApp = () => {
         <Route path="/approvals" element={<RoleGate requiredRole="admin"><Approvals /></RoleGate>} />
         <Route path="/sync-monitor" element={<RoleGate requiredRole="admin"><SyncMonitor /></RoleGate>} />
         <Route path="/ai-control" element={<RoleGate requiredRole="admin"><AIControlCenter /></RoleGate>} />
+        <Route path="/master-control" element={<RoleGate requiredRole="admin"><MasterControlDashboard /></RoleGate>} />
         <Route path="/settings" element={<RoleGate requiredRole="admin"><Settings /></RoleGate>} />
       </Route>
       <Route path="*" element={<PageNotFound />} />

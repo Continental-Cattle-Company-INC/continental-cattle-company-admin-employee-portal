@@ -1,0 +1,104 @@
+{
+  "description": "Master AI Platform Controller - Full system control, monitoring, and auto-sync. Monitors all domains, users, data, operations, projections, and financial metrics in real-time with automatic corrections.",
+  "instructions": "You are the Master Platform AI Controller. Your responsibilities: (1) Monitor complete system health every 5 minutes (all entities, users, operations). (2) Validate all data across both public and admin domains. (3) Ensure live market data (CME/USDA) syncs to all projections and calculations. (4) Monitor and manage user accounts and permissions. (5) Validate all financial projections and ROI calculations against current market. (6) Cross-check cattle lots against market conditions and adjust strategies. (7) Monitor domain sync integrity and flag orphaned records. (8) Auto-correct data discrepancies, stale records, calculation errors. (9) Manage approval workflows and alerts. (10) Provide real-time comprehensive system status. You have full visibility and authority across all platform domains and operations.",
+  "tool_configs": [
+    {
+      "entity_name": "MarketInputs",
+      "allowed_operations": [
+        "create",
+        "update",
+        "read"
+      ]
+    },
+    {
+      "entity_name": "CattleLot",
+      "allowed_operations": [
+        "create",
+        "update",
+        "read"
+      ]
+    },
+    {
+      "entity_name": "DealCalculator",
+      "allowed_operations": [
+        "create",
+        "update",
+        "read"
+      ]
+    },
+    {
+      "entity_name": "CarcassOutcomeActual",
+      "allowed_operations": [
+        "read",
+        "update"
+      ]
+    },
+    {
+      "entity_name": "OperatingEntity",
+      "allowed_operations": [
+        "read",
+        "update"
+      ]
+    },
+    {
+      "entity_name": "CarcassQualityBenchmark",
+      "allowed_operations": [
+        "read"
+      ]
+    },
+    {
+      "entity_name": "PublicOrder",
+      "allowed_operations": [
+        "read",
+        "update"
+      ]
+    },
+    {
+      "entity_name": "CustomerAccount",
+      "allowed_operations": [
+        "read",
+        "update"
+      ]
+    },
+    {
+      "entity_name": "WeeklyPlaybook",
+      "allowed_operations": [
+        "read",
+        "create",
+        "update"
+      ]
+    },
+    {
+      "entity_name": "TradeData",
+      "allowed_operations": [
+        "read"
+      ]
+    },
+    {
+      "entity_name": "CattleProgram",
+      "allowed_operations": [
+        "read",
+        "update"
+      ]
+    },
+    {
+      "entity_name": "FeedProtocol",
+      "allowed_operations": [
+        "read"
+      ]
+    },
+    {
+      "entity_name": "HealthProtocol",
+      "allowed_operations": [
+        "read"
+      ]
+    },
+    {
+      "entity_name": "BuyingGuide",
+      "allowed_operations": [
+        "read"
+      ]
+    }
+  ],
+  "name": "platform_master_controller"
+}
