@@ -1,0 +1,173 @@
+{
+  "name": "Transaction",
+  "type": "object",
+  "properties": {
+    "transaction_type": {
+      "type": "string",
+      "enum": [
+        "payment",
+        "bid",
+        "offer",
+        "transfer"
+      ],
+      "description": "Type of transaction"
+    },
+    "from_party_type": {
+      "type": "string",
+      "enum": [
+        "user",
+        "entity",
+        "trust"
+      ],
+      "description": "Initiating party type"
+    },
+    "from_party_id": {
+      "type": "string",
+      "description": "Initiating party identifier"
+    },
+    "from_bank_account_id": {
+      "type": "string",
+      "description": "Source bank account ID"
+    },
+    "to_party_type": {
+      "type": "string",
+      "enum": [
+        "user",
+        "entity",
+        "trust"
+      ],
+      "description": "Receiving party type"
+    },
+    "to_party_id": {
+      "type": "string",
+      "description": "Receiving party identifier"
+    },
+    "to_bank_account_id": {
+      "type": "string",
+      "description": "Destination bank account ID"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Transaction amount"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD",
+      "description": "Transaction currency"
+    },
+    "description": {
+      "type": "string",
+      "description": "Transaction description (cattle lot, offer details, etc)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "awaiting_signatures",
+        "approved",
+        "completed",
+        "rejected",
+        "cancelled"
+      ],
+      "default": "pending",
+      "description": "Transaction status"
+    },
+    "initiator_signed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Initiating party has signed"
+    },
+    "initiator_signed_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "receiver_signed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Receiving party has signed"
+    },
+    "receiver_signed_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "admin_approved": {
+      "type": "boolean",
+      "default": false,
+      "description": "Admin has approved transaction"
+    },
+    "admin_approved_by": {
+      "type": "string",
+      "description": "Admin email who approved"
+    },
+    "admin_approved_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "funds_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "System verified both parties have sufficient funds"
+    },
+    "funds_verified_timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "is_compliant": {
+      "type": "boolean",
+      "default": false,
+      "description": "Transaction meets all banking regulations"
+    },
+    "compliance_notes": {
+      "type": "string",
+      "description": "Compliance review notes"
+    },
+    "executed_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When transaction actually executed"
+    },
+    "bank_reference_id": {
+      "type": "string",
+      "description": "Reference ID from bank/payment processor"
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "transaction_type",
+    "from_party_type",
+    "from_party_id",
+    "to_party_type",
+    "to_party_id",
+    "amount"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "manager",
+            "user"
+          ]
+        }
+      }
+    },
+    "read": {
+      "custom": "Only involved parties and admin can view transactions"
+    },
+    "update": {
+      "custom": "Only involved parties (for signing) and admin can update"
+    },
+    "delete": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin"
+          ]
+        }
+      }
+    }
+  }
+}
