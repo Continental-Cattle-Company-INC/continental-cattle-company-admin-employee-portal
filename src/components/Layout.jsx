@@ -1,36 +1,43 @@
 import { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
+import { useAuth } from '@/lib/AuthContext';
 import {
   LayoutDashboard, TrendingUp, Calculator, BarChart3,
   Beef, Truck, Globe, BookOpen, Settings, ShieldAlert, Activity, Menu, X, DollarSign,
   Briefcase, Pill
 } from 'lucide-react';
 
-const navItems = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
-  { label: 'Market Inputs', icon: Activity, path: '/market' },
-  { label: 'ROI Ladder', icon: Calculator, path: '/roi-ladder' },
-  { label: 'Purchase Calculator', icon: DollarSign, path: '/purchase-calculator' },
-  { label: 'Cutout Engine', icon: BarChart3, path: '/cutout' },
-  { label: 'Enterprise Model', icon: Beef, path: '/enterprise' },
-  { label: 'Weekly Playbook', icon: TrendingUp, path: '/playbook' },
-  { label: 'Cattle Lots', icon: Beef, path: '/lots' },
-  { label: 'Operational Programs', icon: Briefcase, path: '/programs' },
-  { label: 'Entity Financials', icon: DollarSign, path: '/entity-financials' },
-  { label: 'Feed & Health', icon: Pill, path: '/feed-health' },
-  { label: 'Trade Analytics', icon: Globe, path: '/trade-analytics' },
-  { label: 'Carcass Quality', icon: ShieldAlert, path: '/carcass-quality' },
-  { label: 'Sensitivity', icon: ShieldAlert, path: '/sensitivity' },
-  { label: 'Trucking', icon: Truck, path: '/trucking' },
-  { label: 'Global Intel', icon: Globe, path: '/global' },
-  { label: 'Master Document', icon: BookOpen, path: '/document' },
-  { label: 'Approvals', icon: ShieldAlert, path: '/approvals' },
-  { label: 'Settings', icon: Settings, path: '/settings' },
+const navItemsConfig = [
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/', roles: ['admin', 'manager', 'user'] },
+  { label: 'Market Inputs', icon: Activity, path: '/market', roles: ['admin', 'manager', 'user'] },
+  { label: 'ROI Ladder', icon: Calculator, path: '/roi-ladder', roles: ['admin', 'manager', 'user'] },
+  { label: 'Purchase Calculator', icon: DollarSign, path: '/purchase-calculator', roles: ['admin', 'manager', 'user'] },
+  { label: 'Cutout Engine', icon: BarChart3, path: '/cutout', roles: ['admin', 'manager', 'user'] },
+  { label: 'Enterprise Model', icon: Beef, path: '/enterprise', roles: ['admin', 'manager', 'user'] },
+  { label: 'Weekly Playbook', icon: TrendingUp, path: '/playbook', roles: ['admin', 'manager'] },
+  { label: 'Cattle Lots', icon: Beef, path: '/lots', roles: ['admin', 'manager', 'user'] },
+  { label: 'Operational Programs', icon: Briefcase, path: '/programs', roles: ['admin', 'manager'] },
+  { label: 'Entity Financials', icon: DollarSign, path: '/entity-financials', roles: ['admin'] },
+  { label: 'Feed & Health', icon: Pill, path: '/feed-health', roles: ['admin', 'manager'] },
+  { label: 'Trade Analytics', icon: Globe, path: '/trade-analytics', roles: ['admin', 'manager', 'user'] },
+  { label: 'Carcass Quality', icon: ShieldAlert, path: '/carcass-quality', roles: ['admin', 'manager'] },
+  { label: 'Sensitivity', icon: ShieldAlert, path: '/sensitivity', roles: ['admin', 'manager'] },
+  { label: 'Trucking', icon: Truck, path: '/trucking', roles: ['admin', 'manager'] },
+  { label: 'Global Intel', icon: Globe, path: '/global', roles: ['admin', 'manager', 'user'] },
+  { label: 'Master Document', icon: BookOpen, path: '/document', roles: ['admin'] },
+  { label: 'Approvals', icon: ShieldAlert, path: '/approvals', roles: ['admin'] },
+  { label: 'Settings', icon: Settings, path: '/settings', roles: ['admin'] },
 ];
 
 export default function Layout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { user } = useAuth();
+
+  // Filter nav items by user role
+  const navItems = navItemsConfig.filter(item => 
+    user && item.roles.includes(user.role)
+  );
 
   return (
     <div className="flex h-screen bg-background">

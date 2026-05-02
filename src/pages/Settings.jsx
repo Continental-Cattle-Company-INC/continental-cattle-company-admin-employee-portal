@@ -1,12 +1,25 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import SectionHeader from '@/components/SectionHeader';
-import { AlertTriangle, LogOut, Trash2, User, Shield } from 'lucide-react';
+import { AlertTriangle, LogOut, Trash2, User, Shield, AlertCircle } from 'lucide-react';
 
 export default function Settings() {
   const { user, logout } = useAuth();
   const [deleteStep, setDeleteStep] = useState(0); // 0=idle, 1=confirm, 2=final
   const [deleteInput, setDeleteInput] = useState('');
+
+  // Only admin can access settings
+  if (user?.role !== 'admin') {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertCircle className="w-8 h-8 text-danger mx-auto mb-2" />
+          <div className="text-foreground font-medium">Access Restricted</div>
+          <div className="text-sm text-muted-foreground">Only administrators can access system settings</div>
+        </div>
+      </div>
+    );
+  }
 
   const handleDeleteAccount = () => {
     if (deleteInput.trim().toUpperCase() === 'DELETE') {

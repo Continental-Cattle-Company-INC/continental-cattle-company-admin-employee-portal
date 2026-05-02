@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import RoleGate from '@/components/RoleGate';
 import Layout from '@/components/Layout';
 
 // Page imports
@@ -65,10 +66,12 @@ const AuthenticatedApp = () => {
         <Route path="/settings" element={<Settings />} />
         <Route path="/purchase-calculator" element={<PurchaseCalculator />} />
         <Route path="/programs" element={<OperationalPrograms />} />
-        <Route path="/entity-financials" element={<EntityFinancials />} />
-        <Route path="/feed-health" element={<FeedAndHealth />} />
+        <Route path="/entity-financials" element={<RoleGate requiredRole="admin"><EntityFinancials /></RoleGate>} />
+        <Route path="/feed-health" element={<RoleGate requiredRole={['admin', 'manager']}><FeedAndHealth /></RoleGate>} />
         <Route path="/trade-analytics" element={<TradeAnalytics />} />
-        <Route path="/carcass-quality" element={<CarcassQualityValidation />} />
+        <Route path="/carcass-quality" element={<RoleGate requiredRole={['admin', 'manager']}><CarcassQualityValidation /></RoleGate>} />
+        <Route path="/approvals" element={<RoleGate requiredRole="admin"><Approvals /></RoleGate>} />
+        <Route path="/settings" element={<RoleGate requiredRole="admin"><Settings /></RoleGate>} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

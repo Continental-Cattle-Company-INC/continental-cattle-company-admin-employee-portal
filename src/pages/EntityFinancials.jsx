@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/lib/AuthContext';
 import SectionHeader from '@/components/SectionHeader';
 import { useRealtimeSync, useAutoRefetch } from '@/hooks/useRealtimeSync';
-import { TrendingUp, TrendingDown, DollarSign, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, RefreshCw, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function EntityFinancials() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [lastUpdated, setLastUpdated] = useState(new Date());
+
+  const isAuthorized = user?.role === 'admin';
 
   const { data: entities } = useQuery({
     queryKey: ['operatingEntities'],
@@ -16,6 +20,7 @@ export default function EntityFinancials() {
     initialData: [],
     staleTime: 10000,
     refetchInterval: 30000,
+    enabled: isAuthorized,
   });
 
   useRealtimeSync('OperatingEntity', (event) => {
@@ -24,6 +29,18 @@ export default function EntityFinancials() {
   });
 
   useAutoRefetch(queryClient, ['operatingEntities'], 30000);
+
+  if (!isAuthorized) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertCircle className="w-8 h-8 text-danger mx-auto mb-2" />
+          <div className="text-foreground font-medium">Access Restricted</div>
+          <div className="text-sm text-muted-foreground">Only administrators can view entity financials</div>
+        </div>
+      </div>
+    );
+  }
 
   const totalRevenue = entities.reduce((sum, e) => sum + (e.annual_revenue || 0), 0);
   const totalExpenses = entities.reduce((sum, e) => sum + (e.annual_expenses || 0), 0);

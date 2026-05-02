@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/lib/AuthContext';
 import SectionHeader from '@/components/SectionHeader';
-import { CheckCircle, XCircle, Clock, User, ShoppingCart, Truck, ChevronDown, ChevronRight } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, User, ShoppingCart, Truck, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
 const STATUS_STYLES = {
@@ -119,6 +120,7 @@ function OrderRow({ order, onAction }) {
 }
 
 export default function Approvals() {
+  const { user } = useAuth();
   const [tab, setTab] = useState('accounts');
   const [filter, setFilter] = useState('pending');
   const qc = useQueryClient();
@@ -142,6 +144,19 @@ export default function Approvals() {
     mutationFn: ({ id, status }) => base44.entities.PublicOrder.update(id, { status, reviewed_date: new Date().toISOString().split('T')[0] }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['publicOrders'] }),
   });
+
+  // Only admin can access approvals
+  if (user?.role !== 'admin') {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertCircle className="w-8 h-8 text-danger mx-auto mb-2" />
+          <div className="text-foreground font-medium">Access Restricted</div>
+          <div className="text-sm text-muted-foreground">Only administrators can review and approve requests</div>
+        </div>
+      </div>
+    );
+  }
 
   const filteredAccounts = accounts.filter(a => filter === 'all' || a.status === filter);
   const filteredOrders = orders.filter(o => filter === 'all' || o.status === filter);
