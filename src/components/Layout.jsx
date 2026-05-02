@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import {
   LayoutDashboard, TrendingUp, Calculator, BarChart3,
-  Beef, Truck, Globe, BookOpen, Settings, ShieldAlert, Activity, Menu, X
+  Beef, Truck, Globe, BookOpen, Settings, ShieldAlert, Activity, Menu, X, DollarSign
 } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Market Inputs', icon: Activity, path: '/market' },
   { label: 'ROI Ladder', icon: Calculator, path: '/roi-ladder' },
+  { label: 'Purchase Calculator', icon: DollarSign, path: '/purchase-calculator' },
   { label: 'Cutout Engine', icon: BarChart3, path: '/cutout' },
   { label: 'Enterprise Model', icon: Beef, path: '/enterprise' },
   { label: 'Weekly Playbook', icon: TrendingUp, path: '/playbook' },
