@@ -9,6 +9,7 @@ import {
 
 const navItemsConfig = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/', roles: ['super_admin', 'admin', 'manager', 'office_manager', 'user'] },
+  { label: 'System Health', icon: Activity, path: '/system-health', roles: ['super_admin', 'admin'] },
   { label: 'Market Inputs', icon: Activity, path: '/market', roles: ['super_admin', 'admin', 'manager', 'office_manager', 'user'] },
   { label: 'ROI Ladder', icon: Calculator, path: '/roi-ladder', roles: ['super_admin', 'admin', 'manager', 'user'] },
   { label: 'Purchase Calculator', icon: DollarSign, path: '/purchase-calculator', roles: ['super_admin', 'admin', 'manager', 'user'] },
