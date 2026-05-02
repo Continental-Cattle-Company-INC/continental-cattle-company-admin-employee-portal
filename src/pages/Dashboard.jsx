@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import SectionHeader from '@/components/SectionHeader';
 import StatCard from '@/components/StatCard';
+import { useAutoRefetch, useRealtimeSync } from '@/hooks/useRealtimeSync';
 import {
   TrendingUp, TrendingDown, Activity, AlertTriangle,
-  DollarSign, BarChart3, Beef, Truck, ArrowRight, Target, Calculator, Globe
+  DollarSign, BarChart3, Beef, Truck, ArrowRight, Target, Calculator, Globe, RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -17,17 +18,40 @@ const DEFAULTS = {
 };
 
 export default function Dashboard() {
+  const queryClient = useQueryClient();
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+
   const { data: marketInputs } = useQuery({
     queryKey: ['marketInputs'],
     queryFn: () => base44.entities.MarketInputs.list('-date', 1),
     initialData: [],
+    staleTime: 10000,
+    refetchInterval: 30000,
   });
 
   const { data: lots } = useQuery({
     queryKey: ['cattleLots'],
     queryFn: () => base44.entities.CattleLot.filter({ status: 'active' }),
     initialData: [],
+    staleTime: 10000,
+    refetchInterval: 30000,
   });
+
+  // Real-time sync for market inputs
+  useRealtimeSync('MarketInputs', (event) => {
+    queryClient.invalidateQueries({ queryKey: ['marketInputs'] });
+    setLastUpdated(new Date());
+  });
+
+  // Real-time sync for cattle lots
+  useRealtimeSync('CattleLot', (event) => {
+    queryClient.invalidateQueries({ queryKey: ['cattleLots'] });
+    setLastUpdated(new Date());
+  });
+
+  // Auto-refetch on window focus
+  useAutoRefetch(queryClient, ['marketInputs'], 30000);
+  useAutoRefetch(queryClient, ['cattleLots'], 30000);
 
   const latest = marketInputs?.[0] || {};
   const lc = latest.lc_futures || DEFAULTS.lc;
@@ -65,6 +89,9 @@ export default function Dashboard() {
             roiSignal === 'strong' ? 'text-success' : roiSignal === 'moderate' ? 'text-warning' : 'text-danger'
           }`}>
             Market: {roiSignal.toUpperCase()}
+          </div>
+          <div className="text-xs text-muted-foreground mt-2 flex items-center gap-1 justify-end">
+            <RefreshCw className="w-3 h-3" /> Live • {format(lastUpdated, 'h:mm a')}
           </div>
         </div>
       </div>

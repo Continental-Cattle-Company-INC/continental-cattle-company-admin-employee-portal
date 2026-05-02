@@ -1,15 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import SectionHeader from '@/components/SectionHeader';
-import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { useRealtimeSync, useAutoRefetch } from '@/hooks/useRealtimeSync';
+import { TrendingUp, TrendingDown, DollarSign, RefreshCw } from 'lucide-react';
+import { format } from 'date-fns';
 
 export default function EntityFinancials() {
+  const queryClient = useQueryClient();
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+
   const { data: entities } = useQuery({
     queryKey: ['operatingEntities'],
     queryFn: () => base44.entities.OperatingEntity.list('-annual_revenue'),
     initialData: [],
+    staleTime: 10000,
+    refetchInterval: 30000,
   });
+
+  useRealtimeSync('OperatingEntity', (event) => {
+    queryClient.invalidateQueries({ queryKey: ['operatingEntities'] });
+    setLastUpdated(new Date());
+  });
+
+  useAutoRefetch(queryClient, ['operatingEntities'], 30000);
 
   const totalRevenue = entities.reduce((sum, e) => sum + (e.annual_revenue || 0), 0);
   const totalExpenses = entities.reduce((sum, e) => sum + (e.annual_expenses || 0), 0);
@@ -18,10 +32,16 @@ export default function EntityFinancials() {
 
   return (
     <div className="p-6 space-y-6 max-w-7xl">
-      <SectionHeader 
-        title="ENTITY FINANCIALS"
-        subtitle="Consolidated performance across all 11 operating entities"
-      />
+      <div className="flex items-center justify-between mb-2">
+        <SectionHeader 
+          title="ENTITY FINANCIALS"
+          subtitle="Consolidated performance across all 11 operating entities"
+        />
+        <div className="text-xs text-muted-foreground flex items-center gap-2">
+          <RefreshCw className="w-3 h-3 animate-spin" />
+          Live • {format(lastUpdated, 'h:mm a')}
+        </div>
+      </div>
 
       {/* Consolidated Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">

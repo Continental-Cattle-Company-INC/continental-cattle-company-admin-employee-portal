@@ -1,17 +1,31 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRealtimeSync, useAutoRefetch } from '@/hooks/useRealtimeSync';
+import { RefreshCw } from 'lucide-react';
+import { format } from 'date-fns';
 import SectionHeader from '@/components/SectionHeader';
 import { TrendingUp, TrendingDown, Globe } from 'lucide-react';
 
 export default function TradeAnalytics() {
   const [selectedProduct, setSelectedProduct] = useState('beef_veal');
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const queryClient = useQueryClient();
 
   const { data: tradeData } = useQuery({
     queryKey: ['tradeData'],
     queryFn: () => base44.entities.TradeData.list('-date'),
     initialData: [],
+    staleTime: 10000,
+    refetchInterval: 30000,
   });
+
+  useRealtimeSync('TradeData', (event) => {
+    queryClient.invalidateQueries({ queryKey: ['tradeData'] });
+    setLastUpdated(new Date());
+  });
+
+  useAutoRefetch(queryClient, ['tradeData'], 30000);
 
   const filtered = useMemo(() => {
     return tradeData.filter(t => t.product_type === selectedProduct);
@@ -40,10 +54,16 @@ export default function TradeAnalytics() {
 
   return (
     <div className="p-6 space-y-6 max-w-7xl">
-      <SectionHeader 
-        title="TRADE ANALYTICS"
-        subtitle="U.S. beef, cattle, and lamb import/export trends (1989-2026)"
-      />
+      <div className="flex items-center justify-between mb-2">
+        <SectionHeader 
+          title="TRADE ANALYTICS"
+          subtitle="U.S. beef, cattle, and lamb import/export trends (1989-2026)"
+        />
+        <div className="text-xs text-muted-foreground flex items-center gap-2">
+          <RefreshCw className="w-3 h-3 animate-spin" />
+          Live • {format(lastUpdated, 'h:mm a')}
+        </div>
+      </div>
 
       {/* Product Filter */}
       <div className="flex gap-2">
