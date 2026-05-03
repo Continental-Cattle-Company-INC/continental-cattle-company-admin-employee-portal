@@ -110,7 +110,7 @@ export default function Layout() {
       <MobileHeader onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} mobileMenuOpen={mobileMenuOpen} />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto flex flex-col w-full">
+      <main className="flex-1 flex flex-col w-full min-h-0 overflow-hidden">
         <div className="flex md:flex items-center gap-2 p-4 border-b border-border bg-card/50">
           {/* Mobile Menu Button */}
           <button
@@ -129,7 +129,7 @@ export default function Layout() {
             {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           </div>
-        <div className="flex-1 overflow-y-auto pb-20 md:pb-0">
+        <div className="flex-1 overflow-y-auto pb-20 md:pb-0 min-h-0">
           <Outlet />
         </div>
       </main>

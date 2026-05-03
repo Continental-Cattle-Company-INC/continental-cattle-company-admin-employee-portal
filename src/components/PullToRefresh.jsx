@@ -62,7 +62,7 @@ export default function PullToRefresh({ onRefresh, children }) {
   }, [pullDistance, isRefreshing, onRefresh]);
 
   return (
-    <div ref={containerRef} className="relative w-full h-full overflow-y-auto">
+    <div ref={containerRef} className="relative w-full">
       {/* Pull-to-refresh indicator */}
       <div
         className="absolute top-0 left-0 right-0 flex items-center justify-center bg-primary/10 border-b border-primary/20 transition-all"
