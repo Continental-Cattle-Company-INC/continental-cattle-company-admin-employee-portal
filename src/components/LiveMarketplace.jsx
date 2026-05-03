@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, TrendingUp } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function LiveMarketplace() {
   const [selectedLot, setSelectedLot] = useState(null);
@@ -50,22 +51,22 @@ export default function LiveMarketplace() {
     onSuccess: () => {
       setBidAmount('');
       setPricePerUnit('');
-      alert('Bid placed successfully!');
+      toast.success('Bid placed! An admin will review and negotiate with the seller.');
     },
     onError: (error) => {
-      alert(`Error: ${error.response?.data?.error || error.message}`);
+      toast.error(error.response?.data?.error || error.message);
     },
   });
 
   const handleBid = async () => {
     if (!selectedLot || !bidAmount || !pricePerUnit || !selectedBank) {
-      alert('Please fill all fields and select a bank account');
+      toast.error('Please fill all fields and select a bank account');
       return;
     }
 
     const verifiedBank = bankAccounts.find(b => b.id === selectedBank);
     if (!verifiedBank?.funds_verified) {
-      alert('Selected bank account funds not verified');
+      toast.error('Selected bank account funds not verified');
       return;
     }
 

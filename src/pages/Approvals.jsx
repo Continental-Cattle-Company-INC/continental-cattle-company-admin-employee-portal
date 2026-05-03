@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, CheckCircle, XCircle, Clock, User, ShoppingCart, Truck, ChevronDown, ChevronRight, AlertCircle, Users } from 'lucide-react';
 import UserApprovalPanel from '@/components/UserApprovalPanel';
+import BidNegotiationPanel from '@/components/BidNegotiationPanel';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/AuthContext';
@@ -227,6 +228,7 @@ export default function Approvals() {
             { key: 'users', label: 'User Accounts' },
             { key: 'accounts', label: `Customer Accounts ${pendingAccounts > 0 ? `(${pendingAccounts})` : ''}` },
             { key: 'orders', label: `Orders ${pendingOrders > 0 ? `(${pendingOrders})` : ''}` },
+            { key: 'bids', label: 'Live Bids' },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
               className={`px-4 py-2 rounded text-sm font-medium transition-colors ${tab === t.key ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground hover:text-foreground'}`}>
@@ -247,6 +249,7 @@ export default function Approvals() {
       {/* Content */}
       <div className="space-y-3">
         {tab === 'users' && <UserApprovalPanel />}
+        {tab === 'bids' && <BidNegotiationPanel />}
         {tab === 'accounts' && (
           filteredAccounts.length === 0
             ? <div className="text-center py-12 text-muted-foreground">No {filter} accounts</div>

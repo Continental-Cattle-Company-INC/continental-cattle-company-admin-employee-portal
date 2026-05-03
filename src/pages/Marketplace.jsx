@@ -85,13 +85,18 @@ export default function Marketplace() {
                         <div className="text-sm text-muted-foreground mt-1">
                           ${bid.price_per_unit}/cwt • ${bid.bid_amount.toLocaleString()}
                         </div>
-                        <div className="text-xs text-warning mt-2">Status: ACTIVE</div>
+                        <div className="text-xs text-warning mt-2">Status: ACTIVE — Under review</div>
                       </div>
                       <div className="text-right">
                         <div className="text-xs text-muted-foreground">Bid Time</div>
                         <div className="text-sm">{new Date(bid.bid_timestamp).toLocaleString()}</div>
                       </div>
                     </div>
+                    {bid.admin_notes && (
+                      <div className="mt-3 p-2 bg-primary/10 border border-primary/20 rounded text-xs text-primary">
+                        <span className="font-medium">Admin note: </span>{bid.admin_notes}
+                      </div>
+                    )}
                   </Card>
                 ))}
                 {acceptedBids.map((bid) => (
