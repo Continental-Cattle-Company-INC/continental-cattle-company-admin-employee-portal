@@ -41,6 +41,7 @@ import SystemHealthDashboard from './pages/SystemHealthDashboard';
 import AIPlatformManagement from './pages/AIPlatformManagement';
 import AIAdminControl from './pages/AIAdminControl';
 import LoadBoard from './pages/LoadBoard';
+import FinancialIntelligence from './pages/FinancialIntelligence';
 import MyListings from './pages/MyListings';
 import AttorneyPortal from './pages/AttorneyPortal';
 import PendingApprovalScreen from './components/PendingApprovalScreen';
@@ -119,6 +120,7 @@ const AuthenticatedApp = () => {
         <Route path="/ai-management" element={<RoleGate requiredRole="admin"><AIPlatformManagement /></RoleGate>} />
         <Route path="/ai-admin" element={<RoleGate requiredRole="admin"><AIAdminControl /></RoleGate>} />
         <Route path="/bank-linking" element={<BankLinking />} />
+        <Route path="/financial-intelligence" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager']}><FinancialIntelligence /></RoleGate>} />
         <Route path="/marketplace" element={<Marketplace />} />
         <Route path="/load-board" element={<RoleGate requiredRole={['hauler', 'admin', 'super_admin']}><LoadBoard /></RoleGate>} />
         <Route path="/my-listings" element={<RoleGate requiredRole={['seller', 'admin', 'super_admin']}><MyListings /></RoleGate>} />

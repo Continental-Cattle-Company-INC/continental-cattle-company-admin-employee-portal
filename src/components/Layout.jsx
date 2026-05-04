@@ -6,7 +6,7 @@ import MobileTabBar from './MobileTabBar';
 import {
   LayoutDashboard, TrendingUp, Calculator, BarChart3,
   Beef, Truck, Globe, BookOpen, Settings, ShieldAlert, Activity, Menu, X, DollarSign,
-  Briefcase, Pill, Zap, Workflow, Shield, ShoppingCart, Scale, ListChecks
+  Briefcase, Pill, Zap, Workflow, Shield, ShoppingCart, Scale, ListChecks, Building2
 } from 'lucide-react';
 
 const navItemsConfig = [
@@ -24,6 +24,7 @@ const navItemsConfig = [
   { label: 'Cattle Lots', icon: Beef, path: '/lots', roles: ['super_admin', 'admin', 'manager', 'office_manager'] },
   { label: 'Operational Programs', icon: Briefcase, path: '/programs', roles: ['super_admin', 'admin', 'manager'] },
   { label: 'Entity Financials', icon: DollarSign, path: '/entity-financials', roles: ['super_admin', 'admin', 'accountant', 'attorney_cpa'] },
+  { label: 'Financial Intelligence', icon: Building2, path: '/financial-intelligence', roles: ['super_admin', 'admin', 'manager'] },
   { label: 'Feed & Health', icon: Pill, path: '/feed-health', roles: ['super_admin', 'admin', 'manager'] },
   { label: 'Trade Analytics', icon: Globe, path: '/trade-analytics', roles: ['super_admin', 'admin', 'manager'] },
   { label: 'Carcass Quality', icon: ShieldAlert, path: '/carcass-quality', roles: ['super_admin', 'admin', 'manager'] },
