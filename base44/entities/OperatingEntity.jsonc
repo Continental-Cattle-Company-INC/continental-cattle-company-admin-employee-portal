@@ -8,11 +8,41 @@
     "entity_type": {
       "type": "string",
       "enum": [
+        "personal_trust",
+        "business_trust",
+        "corporation",
         "LLC",
-        "C-Corp",
-        "Trust",
         "Partnership"
       ]
+    },
+    "dba_name": {
+      "type": "string",
+      "description": "DBA name if LLC operating under corporation"
+    },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "tier_1_beneficiary",
+        "tier_2_business_trust",
+        "tier_3_corporation",
+        "tier_4_llc"
+      ],
+      "description": "Position in the ownership hierarchy"
+    },
+    "parent_entity": {
+      "type": "string",
+      "description": "Name of the parent entity in the ownership chain"
+    },
+    "ownership_percent": {
+      "type": "number",
+      "description": "Ownership percentage held by parent"
+    },
+    "ein": {
+      "type": "string",
+      "description": "EIN / Tax ID"
+    },
+    "state_of_formation": {
+      "type": "string"
     },
     "primary_function": {
       "type": "string"
@@ -35,13 +65,25 @@
     "responsible_manager": {
       "type": "string"
     },
+    "trustee": {
+      "type": "string",
+      "description": "Trustee name (for trusts)"
+    },
+    "beneficiary_of": {
+      "type": "string",
+      "description": "Name of business trust this personal trust benefits from"
+    },
+    "registered_agent": {
+      "type": "string"
+    },
     "status": {
       "type": "string",
       "enum": [
         "active",
         "inactive",
         "planning"
-      ]
+      ],
+      "default": "active"
     },
     "notes": {
       "type": "string"
@@ -49,6 +91,7 @@
   },
   "required": [
     "entity_name",
-    "entity_type"
+    "entity_type",
+    "tier"
   ]
 }

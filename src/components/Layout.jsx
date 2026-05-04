@@ -26,6 +26,7 @@ const navItemsConfig = [
   { label: 'Operational Programs', icon: Briefcase, path: '/programs', roles: ['super_admin', 'admin', 'manager'] },
   { label: 'Entity Financials', icon: DollarSign, path: '/entity-financials', roles: ['super_admin', 'admin', 'accountant', 'attorney_cpa'] },
   { label: 'Financial Intelligence', icon: Building2, path: '/financial-intelligence', roles: ['super_admin', 'admin', 'manager'] },
+  { label: 'Corporate Structure', icon: Building2, path: '/corporate-structure', roles: ['super_admin', 'admin', 'accountant', 'attorney_cpa', 'manager'] },
   { label: 'Field Rep Portal', icon: Send, path: '/field-rep', roles: ['super_admin', 'admin', 'manager', 'field_rep', 'sales_rep'] },
   { label: 'Feedlot Ops', icon: Wheat, path: '/feedlot-ops', roles: ['super_admin', 'admin', 'manager', 'feed_mill', 'feed_truck', 'cowboy'] },
   { label: 'Lot Performance', icon: HeartPulse, path: '/lot-performance', roles: ['super_admin', 'admin', 'manager', 'cowboy', 'field_rep'] },
