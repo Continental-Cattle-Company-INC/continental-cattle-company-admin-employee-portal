@@ -133,7 +133,8 @@ export const CALCULATION_CHAINS = {
 export const SYNC_VALIDATION_RULES = [
   {
     name: 'MarketInputs Currency',
-    rule: (data) => {
+    rule: (ctx) => {
+      const data = ctx.market || ctx;
       const required = ['date', 'lc_futures', 'choice_cutout'];
       return required.every(f => data[f] !== null && data[f] !== undefined);
     },
@@ -143,8 +144,14 @@ export const SYNC_VALIDATION_RULES = [
 
   {
     name: 'CattleLot Consistency',
-    rule: (data) => {
-      return data.current_weight <= data.target_weight && data.purchase_weight > 0;
+    rule: (ctx) => {
+      const lots = ctx.lots || [];
+      if (lots.length === 0) return true;
+      return lots.every(lot => {
+        if (lot.current_weight && lot.target_weight && lot.current_weight > lot.target_weight) return false;
+        if (lot.purchase_weight !== undefined && lot.purchase_weight <= 0) return false;
+        return true;
+      });
     },
     severity: 'critical',
     impact: 'Portfolio value and projections invalid',
@@ -152,7 +159,8 @@ export const SYNC_VALIDATION_RULES = [
 
   {
     name: 'LC-Cutout Spread Logic',
-    rule: (market) => {
+    rule: (ctx) => {
+      const market = ctx.market || ctx;
       const lc = market.lc_futures || 0;
       const choice = market.choice_cutout || 0;
       const spread = choice - lc;
@@ -164,7 +172,8 @@ export const SYNC_VALIDATION_RULES = [
 
   {
     name: 'Basis Reasonability',
-    rule: (market) => {
+    rule: (ctx) => {
+      const market = ctx.market || ctx;
       const basis = market.basis_southern_plains || 0;
       return basis >= -10 && basis <= 5; // Normal basis range
     },
@@ -174,10 +183,14 @@ export const SYNC_VALIDATION_RULES = [
 
   {
     name: 'Trim Price Consistency',
-    rule: (market) => {
-      const trim90 = market.trim_90s || 0;
-      const trim50 = market.trim_50s || 0;
-      return trim90 >= 2.0 && trim90 <= 4.5 && trim50 >= 1.5 && trim50 <= 3.5;
+    rule: (ctx) => {
+      const market = ctx.market || ctx;
+      const trim90 = market.trim_90s;
+      const trim50 = market.trim_50s;
+      if (trim90 === undefined || trim90 === null || trim90 === 0) return true;
+      const valid90 = trim90 >= 2.0 && trim90 <= 4.5;
+      if (trim50 === undefined || trim50 === null || trim50 === 0) return valid90;
+      return valid90 && trim50 >= 1.5 && trim50 <= 3.5;
     },
     severity: 'warning',
     impact: 'Cow/Bull sell signals unreliable',

@@ -79,9 +79,10 @@ export default function CrossDomainSyncMonitor() {
       // Check validation rules
       const issues = [];
       const market = marketInputs[0] || {};
+      const validationCtx = { market, lots: cattleLots };
 
       SYNC_VALIDATION_RULES.forEach(rule => {
-        const valid = rule.rule(market);
+        const valid = rule.rule(validationCtx);
         if (!valid) {
           issues.push({
             name: rule.name,
@@ -309,7 +310,8 @@ export default function CrossDomainSyncMonitor() {
             </p>
             {SYNC_VALIDATION_RULES.map((rule, i) => {
               const market = marketInputs[0] || {};
-              const isValid = rule.rule(market);
+              const validationCtx = { market, lots: cattleLots };
+              const isValid = rule.rule(validationCtx);
               return (
                 <div key={i} className={`border rounded-lg p-4 ${
                   isValid
