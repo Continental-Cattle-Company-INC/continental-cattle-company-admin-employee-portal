@@ -53,15 +53,22 @@ export const AuthProvider = ({ children }) => {
         // Handle app-level errors
         if (appError.status === 403 && appError.data?.extra_data?.reason) {
           const reason = appError.data.extra_data.reason;
-          if (reason === 'auth_required') {
-            setAuthError({
-              type: 'auth_required',
-              message: 'Authentication required'
-            });
-          } else if (reason === 'user_not_registered') {
+          if (reason === 'user_not_registered') {
             setAuthError({
               type: 'user_not_registered',
               message: 'User not registered for this app'
+            });
+          } else if (reason === 'auth_required') {
+            // Still try to authenticate if we have a token — the user
+            // may already be logged in even though public-settings requires auth
+            if (appParams.token) {
+              await checkUserAuth();
+              setIsLoadingPublicSettings(false);
+              return;
+            }
+            setAuthError({
+              type: 'auth_required',
+              message: 'Authentication required'
             });
           } else {
             setAuthError({
@@ -96,6 +103,7 @@ export const AuthProvider = ({ children }) => {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
+      setAuthError(null); // Clear any previous auth errors
       setIsLoadingAuth(false);
       setAuthChecked(true);
     } catch (error) {

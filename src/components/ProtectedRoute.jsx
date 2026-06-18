@@ -22,16 +22,14 @@ export default function ProtectedRoute({ fallback = <DefaultFallback />, unauthe
     return fallback;
   }
 
-  if (authError) {
-    if (authError.type === 'user_not_registered') {
-      return <UserNotRegisteredError />;
-    }
-    return unauthenticatedElement;
+  // If user is authenticated, let them through regardless of stale authError
+  if (isAuthenticated) {
+    return <Outlet />;
   }
 
-  if (!isAuthenticated) {
-    return unauthenticatedElement;
+  if (authError?.type === 'user_not_registered') {
+    return <UserNotRegisteredError />;
   }
 
-  return <Outlet />;
+  return unauthenticatedElement;
 }
