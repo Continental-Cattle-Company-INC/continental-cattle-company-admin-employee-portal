@@ -63,13 +63,15 @@ Deno.serve(async (req) => {
 
     const lotConsistencyIssues = [];
     cattleLots.forEach(lot => {
-      if (lot.current_weight > lot.target_weight) {
+      if (!lot || typeof lot !== 'object') return;
+      if (lot.status === 'sold' || lot.status === 'dead' || lot.status === 'transferred') return;
+      if (lot.current_weight != null && lot.target_weight != null && lot.current_weight > 0 && lot.target_weight > 0 && lot.current_weight > lot.target_weight) {
         lotConsistencyIssues.push({
           lot_id: lot.lot_id || lot.id,
           issue: `Current weight (${lot.current_weight}) exceeds target (${lot.target_weight})`,
         });
       }
-      if (lot.purchase_weight <= 0) {
+      if (lot.purchase_weight != null && lot.purchase_weight <= 0) {
         lotConsistencyIssues.push({
           lot_id: lot.lot_id || lot.id,
           issue: 'Purchase weight is zero or negative',

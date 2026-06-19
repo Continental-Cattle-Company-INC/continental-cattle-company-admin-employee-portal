@@ -146,10 +146,12 @@ export const SYNC_VALIDATION_RULES = [
     name: 'CattleLot Consistency',
     rule: (ctx) => {
       const lots = ctx.lots || [];
-      if (lots.length === 0) return true;
+      if (!Array.isArray(lots) || lots.length === 0) return true;
       return lots.every(lot => {
-        if (lot.current_weight && lot.target_weight && lot.current_weight > lot.target_weight) return false;
-        if (lot.purchase_weight !== undefined && lot.purchase_weight <= 0) return false;
+        if (!lot || typeof lot !== 'object') return true;
+        if (lot.status === 'sold' || lot.status === 'dead' || lot.status === 'transferred') return true;
+        if (lot.current_weight != null && lot.target_weight != null && lot.current_weight > 0 && lot.target_weight > 0 && lot.current_weight > lot.target_weight) return false;
+        if (lot.purchase_weight != null && lot.purchase_weight <= 0) return false;
         return true;
       });
     },

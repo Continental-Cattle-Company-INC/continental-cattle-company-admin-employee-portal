@@ -52,10 +52,11 @@ async function validateCattleProjectionAccuracy(base44, marketData) {
     const corrections = [];
 
     for (const lot of lots) {
-      if (lot.status !== 'active') continue;
+      if (!lot || typeof lot !== 'object') continue;
+      if (lot.status === 'sold' || lot.status === 'dead' || lot.status === 'transferred') continue;
 
       // Validate weight trajectory
-      if (lot.purchase_weight && lot.current_weight && lot.target_weight) {
+      if (lot.purchase_weight != null && lot.current_weight != null && lot.target_weight != null && lot.purchase_weight > 0 && lot.target_weight > 0) {
         const totalGain = lot.target_weight - lot.purchase_weight;
         const gainToDate = lot.current_weight - lot.purchase_weight;
         
