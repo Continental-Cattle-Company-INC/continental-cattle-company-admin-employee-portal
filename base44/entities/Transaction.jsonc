@@ -155,10 +155,34 @@
       }
     },
     "read": {
-      "custom": "Only involved parties and admin can view transactions"
+      "$or": [
+        {
+          "data.from_party_id": "{{user.email}}"
+        },
+        {
+          "data.to_party_id": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "update": {
-      "custom": "Only involved parties (for signing) and admin can update"
+      "$or": [
+        {
+          "data.from_party_id": "{{user.email}}"
+        },
+        {
+          "data.to_party_id": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "delete": {
       "user_condition": {

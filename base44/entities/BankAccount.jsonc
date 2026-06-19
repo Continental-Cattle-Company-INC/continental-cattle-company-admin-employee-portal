@@ -134,7 +134,16 @@
       }
     },
     "read": {
-      "custom": "Only admin, account owner, and authorized parties can view"
+      "$or": [
+        {
+          "data.account_holder_id": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
     },
     "update": {
       "user_condition": {

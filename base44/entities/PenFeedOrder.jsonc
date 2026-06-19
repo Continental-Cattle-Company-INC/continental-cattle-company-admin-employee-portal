@@ -87,5 +87,51 @@
     "pen",
     "ration_name",
     "feed_date"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "manager",
+            "feedlot_admin",
+            "feed_mill"
+          ]
+        }
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "manager",
+            "feedlot_admin",
+            "feed_mill",
+            "feed_truck",
+            "cowboy"
+          ]
+        }
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "manager",
+            "feedlot_admin",
+            "feed_mill",
+            "feed_truck"
+          ]
+        }
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

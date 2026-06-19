@@ -110,5 +110,61 @@
     "purchase_weight",
     "purchase_price",
     "purchase_date"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "manager",
+            "feedlot_admin",
+            "field_admin",
+            "field_rep"
+          ]
+        }
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "data.entity": "Continental"
+        },
+        {
+          "user_condition": {
+            "role": {
+              "$in": [
+                "admin",
+                "manager",
+                "feedlot_admin",
+                "market_admin",
+                "field_admin",
+                "cowboy",
+                "field_rep"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "manager",
+            "feedlot_admin",
+            "field_admin",
+            "cowboy",
+            "field_rep"
+          ]
+        }
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }
