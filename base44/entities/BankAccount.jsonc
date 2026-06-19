@@ -123,14 +123,21 @@
   ],
   "rls": {
     "create": {
-      "user_condition": {
-        "role": {
-          "$in": [
-            "admin",
-            "financial_admin"
-          ]
+      "$or": [
+        {
+          "data.account_holder_id": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": {
+              "$in": [
+                "admin",
+                "financial_admin"
+              ]
+            }
+          }
         }
-      }
+      ]
     },
     "read": {
       "$or": [
@@ -145,13 +152,16 @@
       ]
     },
     "update": {
-      "user_condition": {
-        "role": {
-          "$in": [
-            "admin"
-          ]
+      "$or": [
+        {
+          "data.account_holder_id": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
         }
-      }
+      ]
     },
     "delete": {
       "user_condition": {
