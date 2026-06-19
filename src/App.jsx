@@ -9,9 +9,10 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import RoleGate from '@/components/RoleGate';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Navigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Navigate, useLocation } from 'react-router-dom';
 import { initOfflineEngine } from '@/lib/offlineEngine';
+import PageHeader from '@/components/PageHeader';
 
 // Page imports
 import Dashboard from './pages/Dashboard';
@@ -72,6 +73,27 @@ const LoadingScreen = () => (
     </div>
   </div>
 );
+
+const PageWrapper = ({ children }) => {
+  const location = useLocation();
+  const isRootTab = ['/', '/market', '/roi-ladder', '/cutout', '/enterprise', '/playbook', '/lots', '/sensitivity', '/trucking'].includes(location.pathname);
+  
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, x: 10 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -10 }}
+        transition={{ duration: 0.2 }}
+        className="min-h-screen"
+      >
+        {!isRootTab && <PageHeader />}
+        {children}
+      </motion.div>
+    </AnimatePresence>
+  );
+};
 
 const AppRoutes = () => {
   const { user, authError } = useAuth();

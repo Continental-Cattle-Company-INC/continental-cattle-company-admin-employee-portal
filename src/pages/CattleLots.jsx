@@ -6,6 +6,7 @@ import { Plus, X, Beef, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import PullToRefresh from '@/components/PullToRefresh';
+import MobileSelectDrawer from '@/components/MobileSelectDrawer';
 import { BREED_TYPES, SEX_OPTIONS, getCattleLabel } from '@/lib/cattleConfig';
 import {
   Select,
@@ -55,12 +56,32 @@ export default function CattleLots() {
 
   const createMut = useMutation({
     mutationFn: (d) => base44.entities.CattleLot.create(d),
+    onMutate: async (newData) => {
+      await qc.cancelQueries({ queryKey: ['cattleLots'] });
+      const previous = qc.getQueryData(['cattleLots']);
+      qc.setQueryData(['cattleLots'], (old) => [{ ...newData, id: 'temp-' + Date.now(), created_at: new Date().toISOString() }, ...old]);
+      return { previous };
+    },
     onSuccess: () => { qc.invalidateQueries(['cattleLots']); setShowForm(false); setForm(BLANK_FORM); toast.success('Lot created'); },
+    onError: (err, newData, context) => {
+      qc.setQueryData(['cattleLots'], context.previous);
+      toast.error('Failed to create lot');
+    },
   });
 
   const updateMut = useMutation({
     mutationFn: ({ id, data }) => base44.entities.CattleLot.update(id, data),
+    onMutate: async ({ id, data }) => {
+      await qc.cancelQueries({ queryKey: ['cattleLots'] });
+      const previous = qc.getQueryData(['cattleLots']);
+      qc.setQueryData(['cattleLots'], (old) => old.map(lot => lot.id === id ? { ...lot, ...data } : lot));
+      return { previous };
+    },
     onSuccess: () => { qc.invalidateQueries(['cattleLots']); toast.success('Updated'); },
+    onError: (err, variables, context) => {
+      qc.setQueryData(['cattleLots'], context.previous);
+      toast.error('Failed to update');
+    },
   });
 
   const filtered = lots.filter(l =>
@@ -87,26 +108,20 @@ export default function CattleLots() {
       {/* Filters + Stats */}
       <div className="flex flex-wrap gap-3 items-center justify-between">
         <div className="flex gap-2 flex-wrap">
-          <Select value={filterEntity} onValueChange={setFilterEntity}>
-            <SelectTrigger className="w-32 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Entities</SelectItem>
-              {ENTITIES.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-32 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="sold">Sold</SelectItem>
-              <SelectItem value="transferred">Transferred</SelectItem>
-            </SelectContent>
-          </Select>
+          <MobileSelectDrawer
+            value={filterEntity}
+            onValueChange={setFilterEntity}
+            options={[{ value: 'all', label: 'All Entities' }, ...ENTITIES.map(e => ({ value: e, label: e }))]}
+            placeholder="Filter by Entity"
+            className="w-32"
+          />
+          <MobileSelectDrawer
+            value={filterStatus}
+            onValueChange={setFilterStatus}
+            options={[{ value: 'all', label: 'All Statuses' }, { value: 'active', label: 'Active' }, { value: 'sold', label: 'Sold' }, { value: 'transferred', label: 'Transferred' }]}
+            placeholder="Filter by Status"
+            className="w-32"
+          />
           <div className="flex items-center gap-3 bg-card border border-border rounded px-3 py-2">
             <span className="text-xs text-muted-foreground">Head: <span className="text-primary font-medium">{totalHead.toLocaleString()}</span></span>
             <span className="text-xs text-muted-foreground">Value: <span className="text-success font-medium">${(totalValue/1000).toFixed(0)}K</span></span>
@@ -147,47 +162,39 @@ export default function CattleLots() {
             ))}
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Breed Type</label>
-              <Select value={form.breed_type} onValueChange={(value) => f('breed_type', value)}>
-                <SelectTrigger className="text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {BREED_TYPES.map(b => <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <MobileSelectDrawer
+                value={form.breed_type}
+                onValueChange={(value) => f('breed_type', value)}
+                options={BREED_TYPES.map(b => ({ value: b.value, label: b.label }))}
+                placeholder="Select breed"
+              />
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Sex</label>
-              <Select value={form.sex} onValueChange={(value) => f('sex', value)}>
-                <SelectTrigger className="text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SEX_OPTIONS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <MobileSelectDrawer
+                value={form.sex}
+                onValueChange={(value) => f('sex', value)}
+                options={SEX_OPTIONS.map(s => ({ value: s.value, label: s.label }))}
+                placeholder="Select sex"
+              />
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Entity</label>
-              <Select value={form.entity} onValueChange={(value) => f('entity', value)}>
-                <SelectTrigger className="text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ENTITIES.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <MobileSelectDrawer
+                value={form.entity}
+                onValueChange={(value) => f('entity', value)}
+                options={ENTITIES.map(e => ({ value: e, label: e }))}
+                placeholder="Select entity"
+              />
             </div>
             <div>
               <label className="text-xs text-muted-foreground block mb-1">Stage</label>
-              <Select value={form.stage} onValueChange={(value) => f('stage', value)}>
-                <SelectTrigger className="text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {STAGES.map(s => <SelectItem key={s} value={s}>{s.replace('_', ' ')}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <MobileSelectDrawer
+                value={form.stage}
+                onValueChange={(value) => f('stage', value)}
+                options={STAGES.map(s => ({ value: s, label: s.replace('_', ' ') }))}
+                placeholder="Select stage"
+              />
             </div>
           </div>
           <textarea placeholder="Notes..." value={form.notes} onChange={e => f('notes', e.target.value)}
@@ -238,17 +245,18 @@ export default function CattleLots() {
                     </td>
                     <td className="px-3 py-2.5 text-success font-medium">${(val/1000).toFixed(1)}K</td>
                     <td className="px-3 py-2.5">
-                      <Select value={lot.status} onValueChange={(value) => updateMut.mutate({ id: lot.id, data: { status: value } })}>
-                        <SelectTrigger className="w-24 h-7 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="sold">Sold</SelectItem>
-                          <SelectItem value="transferred">Transferred</SelectItem>
-                          <SelectItem value="dead">Dead</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <MobileSelectDrawer
+                        value={lot.status}
+                        onValueChange={(value) => updateMut.mutate({ id: lot.id, data: { status: value } })}
+                        options={[
+                          { value: 'active', label: 'Active' },
+                          { value: 'sold', label: 'Sold' },
+                          { value: 'transferred', label: 'Transferred' },
+                          { value: 'dead', label: 'Dead' },
+                        ]}
+                        placeholder="Status"
+                        className="w-24"
+                      />
                     </td>
                   </tr>
                 );

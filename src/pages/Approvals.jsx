@@ -165,12 +165,32 @@ export default function Approvals() {
 
   const updateAccount = useMutation({
     mutationFn: ({ id, status }) => base44.entities.CustomerAccount.update(id, { status, reviewed_date: new Date().toISOString().split('T')[0] }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['customerAccounts'] }),
+    onMutate: async ({ id, status }) => {
+      await qc.cancelQueries({ queryKey: ['customerAccounts'] });
+      const previous = qc.getQueryData(['customerAccounts']);
+      qc.setQueryData(['customerAccounts'], (old) => old.map(acc => acc.id === id ? { ...acc, status } : acc));
+      return { previous };
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['customerAccounts'] }); toast.success('Account updated'); },
+    onError: (err, variables, context) => {
+      qc.setQueryData(['customerAccounts'], context.previous);
+      toast.error('Failed to update account');
+    },
   });
 
   const updateOrder = useMutation({
     mutationFn: ({ id, status }) => base44.entities.PublicOrder.update(id, { status, reviewed_date: new Date().toISOString().split('T')[0] }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['publicOrders'] }),
+    onMutate: async ({ id, status }) => {
+      await qc.cancelQueries({ queryKey: ['publicOrders'] });
+      const previous = qc.getQueryData(['publicOrders']);
+      qc.setQueryData(['publicOrders'], (old) => old.map(ord => ord.id === id ? { ...ord, status } : ord));
+      return { previous };
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['publicOrders'] }); toast.success('Order updated'); },
+    onError: (err, variables, context) => {
+      qc.setQueryData(['publicOrders'], context.previous);
+      toast.error('Failed to update order');
+    },
   });
 
   // Only super admin and admin can access approvals
