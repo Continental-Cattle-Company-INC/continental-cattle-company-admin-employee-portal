@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
+import { isFullAccess, SECTION_ADMIN_SECTIONS } from '@/lib/accessControl';
 import MobileHeader from './MobileHeader';
 import MobileTabBar from './MobileTabBar';
 import {
@@ -58,10 +59,14 @@ export default function Layout() {
    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
    const { user } = useAuth();
 
-  // Filter nav items by user role
-  const navItems = navItemsConfig.filter(item => 
-    user && item.roles.includes(user.role)
-  );
+  // Filter nav items: full-access users see everything; section admins see their pages; others by role
+  const navItems = navItemsConfig.filter(item => {
+    if (!user) return false;
+    if (isFullAccess(user)) return true;
+    const section = SECTION_ADMIN_SECTIONS[user.role];
+    if (section) return section.pages.includes(item.path);
+    return item.roles.includes(user.role);
+  });
 
   return (
     <div className="flex h-screen bg-background flex-col md:flex-row overflow-hidden">
@@ -104,7 +109,16 @@ export default function Layout() {
         </nav>
 
         {/* Footer */}
-        <div className="p-3 border-t border-border text-xs text-muted-foreground">
+        <div className="p-3 border-t border-border text-xs text-muted-foreground space-y-1">
+          <div className="truncate font-medium text-foreground">{user?.full_name || user?.email}</div>
+          <div className="truncate capitalize">
+            {isFullAccess(user)
+              ? <span className="text-primary font-medium">Full Access</span>
+              : SECTION_ADMIN_SECTIONS[user?.role]
+                ? <span className="text-amber-400">{SECTION_ADMIN_SECTIONS[user.role].label}</span>
+                : <span>{user?.role}</span>
+            }
+          </div>
           <div>v1.0 — Live</div>
         </div>
       </aside>

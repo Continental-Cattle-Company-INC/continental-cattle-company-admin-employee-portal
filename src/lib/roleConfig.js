@@ -1,10 +1,12 @@
 // Role-based access control configuration
-// INTERNAL roles: super_admin, admin, manager, office_manager, accountant
+// FULL ACCESS: super_admin role + named users Lane, Scott, Jeff (see lib/accessControl.js)
+// SECTION ADMINS: feedlot_admin, trucking_admin, maintenance_admin, financial_admin, market_admin, staff_admin, field_admin
+// INTERNAL roles: admin, manager, office_manager, accountant
 // OPERATIONS roles: field_rep, sales_rep, cowboy, feed_mill, feed_truck, dispatch, truck_driver, truck_owner, welder, maintenance, investor, banker
 // EXTERNAL roles (require approval): buyer, seller, hauler, attorney_cpa
 
 export const ROLE_CONFIG = {
-  // ─── EXECUTIVE / ADMIN ──────────────────────────────────────────────────────
+  // ─── FULL ACCESS ─────────────────────────────────────────────────────────────
   super_admin: {
     label: 'Super Administrator',
     category: 'Executive',
@@ -29,7 +31,92 @@ export const ROLE_CONFIG = {
     ],
   },
 
-  // ─── FINANCIAL / LEGAL ──────────────────────────────────────────────────────
+  // ─── SECTION ADMINS ──────────────────────────────────────────────────────────
+  feedlot_admin: {
+    label: 'Feedlot Admin',
+    category: 'Section Admin',
+    description: 'Admin of feedlot operations — manages cowboys, feed staff, lot performance, feed & health',
+    isExternal: false,
+    color: 'text-green-400',
+    permissions: [
+      'view_dashboard', 'view_lots', 'view_feedlot_ops', 'view_lot_performance',
+      'view_feed_health', 'view_ai_feed_planner', 'view_staff_portal',
+      'manage_users', 'approve_orders',
+    ],
+  },
+  trucking_admin: {
+    label: 'Trucking Admin',
+    category: 'Section Admin',
+    description: 'Admin of trucking operations — manages drivers, dispatch, load board',
+    isExternal: false,
+    color: 'text-orange-400',
+    permissions: [
+      'view_dashboard', 'view_load_board', 'view_trucking', 'view_staff_portal',
+      'manage_users',
+    ],
+  },
+  maintenance_admin: {
+    label: 'Maintenance Admin',
+    category: 'Section Admin',
+    description: 'Admin of maintenance & facilities — manages welders and maintenance techs',
+    isExternal: false,
+    color: 'text-red-400',
+    permissions: [
+      'view_dashboard', 'view_maintenance', 'view_staff_portal',
+      'manage_users',
+    ],
+  },
+  financial_admin: {
+    label: 'Financial Admin',
+    category: 'Section Admin',
+    description: 'Admin of financial section — manages accountants, attorneys, entity data',
+    isExternal: false,
+    color: 'text-blue-400',
+    permissions: [
+      'view_dashboard', 'view_financials', 'view_entity_financials',
+      'view_financial_intelligence', 'view_corporate_structure',
+      'view_settlements', 'view_transactions', 'view_approvals',
+      'view_staff_portal', 'manage_users',
+    ],
+  },
+  market_admin: {
+    label: 'Market Admin',
+    category: 'Section Admin',
+    description: 'Admin of market & analytics section — manages market data, ROI, programs',
+    isExternal: false,
+    color: 'text-purple-400',
+    permissions: [
+      'view_dashboard', 'view_market', 'view_roi', 'view_lots', 'view_playbook',
+      'view_programs', 'view_sensitivity', 'view_carcass_quality', 'view_global',
+      'view_trade_analytics', 'view_cutout', 'view_enterprise',
+      'view_purchase_calculator', 'view_staff_portal', 'manage_users',
+    ],
+  },
+  staff_admin: {
+    label: 'Staff Admin',
+    category: 'Section Admin',
+    description: 'Admin of all HR/staff — manages all employee records and approvals',
+    isExternal: false,
+    color: 'text-amber-400',
+    permissions: [
+      'view_dashboard', 'view_staff_portal', 'view_approvals',
+      'manage_users', 'approve_orders',
+    ],
+  },
+  field_admin: {
+    label: 'Field Admin',
+    category: 'Section Admin',
+    description: 'Admin of field operations — manages field reps, marketplace, listings',
+    isExternal: false,
+    color: 'text-cyan-400',
+    permissions: [
+      'view_dashboard', 'view_field_rep', 'view_marketplace',
+      'view_my_listings', 'view_lots', 'view_lot_performance',
+      'view_staff_portal', 'manage_users',
+    ],
+  },
+
+  // ─── FINANCIAL / LEGAL ───────────────────────────────────────────────────────
   accountant: {
     label: 'Accountant / CPA',
     category: 'Financial',
@@ -75,7 +162,7 @@ export const ROLE_CONFIG = {
     ],
   },
 
-  // ─── MANAGEMENT / OPERATIONS ────────────────────────────────────────────────
+  // ─── MANAGEMENT / OPERATIONS ─────────────────────────────────────────────────
   manager: {
     label: 'Manager',
     category: 'Management',
@@ -114,7 +201,7 @@ export const ROLE_CONFIG = {
     ],
   },
 
-  // ─── TRUCKING / TRANSPORT ───────────────────────────────────────────────────
+  // ─── TRUCKING / TRANSPORT ────────────────────────────────────────────────────
   truck_owner: {
     label: 'Truck Owner',
     category: 'Trucking',
@@ -144,7 +231,7 @@ export const ROLE_CONFIG = {
     permissions: ['view_load_board'],
   },
 
-  // ─── CATTLE OPERATIONS ──────────────────────────────────────────────────────
+  // ─── CATTLE OPERATIONS ───────────────────────────────────────────────────────
   cowboy: {
     label: 'Cowboy / Ranch Hand',
     category: 'Ranch Ops',
@@ -177,7 +264,7 @@ export const ROLE_CONFIG = {
     ],
   },
 
-  // ─── FEEDLOT OPERATIONS ─────────────────────────────────────────────────────
+  // ─── FEEDLOT OPERATIONS ──────────────────────────────────────────────────────
   feed_mill: {
     label: 'Feed Mill Operator',
     category: 'Feedlot',
@@ -199,7 +286,7 @@ export const ROLE_CONFIG = {
     ],
   },
 
-  // ─── MAINTENANCE / FACILITIES ───────────────────────────────────────────────
+  // ─── MAINTENANCE / FACILITIES ────────────────────────────────────────────────
   welder: {
     label: 'Welder',
     category: 'Maintenance',
@@ -221,7 +308,7 @@ export const ROLE_CONFIG = {
     ],
   },
 
-  // ─── MARKETPLACE EXTERNAL ───────────────────────────────────────────────────
+  // ─── MARKETPLACE EXTERNAL ────────────────────────────────────────────────────
   buyer: {
     label: 'Buyer',
     category: 'External',
@@ -258,19 +345,25 @@ export const ROLE_CONFIG = {
 };
 
 export const ROLE_CATEGORIES = {
-  Executive:    ['super_admin', 'admin'],
-  Financial:    ['accountant', 'attorney_cpa', 'investor', 'banker'],
-  Management:   ['manager', 'office_manager', 'dispatch'],
-  Trucking:     ['truck_owner', 'truck_driver', 'hauler'],
-  'Ranch Ops':  ['cowboy', 'field_rep', 'sales_rep'],
-  Feedlot:      ['feed_mill', 'feed_truck'],
-  Maintenance:  ['welder', 'maintenance'],
-  External:     ['buyer', 'seller'],
+  Executive:      ['super_admin', 'admin'],
+  'Section Admin':['feedlot_admin', 'trucking_admin', 'maintenance_admin', 'financial_admin', 'market_admin', 'staff_admin', 'field_admin'],
+  Financial:      ['accountant', 'attorney_cpa', 'investor', 'banker'],
+  Management:     ['manager', 'office_manager', 'dispatch'],
+  Trucking:       ['truck_owner', 'truck_driver', 'hauler'],
+  'Ranch Ops':    ['cowboy', 'field_rep', 'sales_rep'],
+  Feedlot:        ['feed_mill', 'feed_truck'],
+  Maintenance:    ['welder', 'maintenance'],
+  External:       ['buyer', 'seller'],
 };
 
 export const EXTERNAL_ROLES = ['buyer', 'seller', 'hauler', 'attorney_cpa', 'investor', 'banker', 'pending'];
-export const INTERNAL_ROLES = ['super_admin', 'admin', 'accountant', 'manager', 'office_manager', 'dispatch',
-  'truck_owner', 'truck_driver', 'cowboy', 'field_rep', 'sales_rep', 'feed_mill', 'feed_truck', 'welder', 'maintenance'];
+export const INTERNAL_ROLES = ['super_admin', 'admin', 'feedlot_admin', 'trucking_admin', 'maintenance_admin',
+  'financial_admin', 'market_admin', 'staff_admin', 'field_admin', 'accountant', 'manager', 'office_manager',
+  'dispatch', 'truck_owner', 'truck_driver', 'cowboy', 'field_rep', 'sales_rep', 'feed_mill', 'feed_truck',
+  'welder', 'maintenance'];
+
+export const SECTION_ADMIN_ROLES = ['feedlot_admin', 'trucking_admin', 'maintenance_admin',
+  'financial_admin', 'market_admin', 'staff_admin', 'field_admin'];
 
 export function isExternalRole(role) {
   return EXTERNAL_ROLES.includes(role);

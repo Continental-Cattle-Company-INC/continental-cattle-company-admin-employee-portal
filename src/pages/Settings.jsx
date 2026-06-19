@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { useTheme } from '@/lib/ThemeProvider';
+import { isFullAccess, getAccessLabel } from '@/lib/accessControl';
 import SectionHeader from '@/components/SectionHeader';
 import { AlertTriangle, LogOut, Trash2, User, Shield, AlertCircle, Moon, Sun } from 'lucide-react';
 
@@ -10,8 +11,8 @@ export default function Settings() {
   const [deleteStep, setDeleteStep] = useState(0); // 0=idle, 1=confirm, 2=final
   const [deleteInput, setDeleteInput] = useState('');
 
-  // Only super admin and admin can access settings
-  if (!['super_admin', 'admin'].includes(user?.role)) {
+  // Full-access users (super_admin + Lane/Scott/Jeff) + admins can access settings
+  if (!isFullAccess(user) && !['admin'].includes(user?.role)) {
     return (
       <div className="p-6 flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -54,7 +55,7 @@ export default function Settings() {
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground border-t border-border pt-3">
           <Shield className="w-3.5 h-3.5" />
-          <span>Role: <span className="text-primary capitalize">{user?.role || 'user'}</span></span>
+          <span>Access: <span className="text-primary capitalize">{getAccessLabel(user)}</span></span>
         </div>
       </div>
 
