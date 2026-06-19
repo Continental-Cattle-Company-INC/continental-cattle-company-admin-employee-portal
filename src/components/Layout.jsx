@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
-import { isFullAccess, SECTION_ADMIN_SECTIONS } from '@/lib/accessControl';
+import { isFullAccess, getSectionAdmin, getAllowedPagePaths, getAccessLabel } from '@/lib/accessControl';
 import MobileHeader from './MobileHeader';
 import MobileTabBar from './MobileTabBar';
 import {
@@ -11,47 +11,47 @@ import {
   Send, Wheat, HeartPulse, Users, Wrench, Brain
 } from 'lucide-react';
 
+// Nav items — the `roles` array is used as a FALLBACK only when a user doesn't match
+// the 3-tier page-list logic. Tier 1 (super admins) always see everything.
+// Tier 2/3 visibility is driven by getAllowedPagePaths() in the filter below.
 const navItemsConfig = [
-  // Internal / Admin
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/', roles: ['super_admin', 'admin', 'manager', 'office_manager', 'accountant'] },
-  { label: 'System Health', icon: Activity, path: '/system-health', roles: ['super_admin', 'admin'] },
-  { label: 'AI Management', icon: Workflow, path: '/ai-management', roles: ['super_admin', 'admin'] },
-  { label: 'AI Admin Control', icon: Shield, path: '/ai-admin', roles: ['super_admin', 'admin'] },
-  { label: 'Market Inputs', icon: Activity, path: '/market', roles: ['super_admin', 'admin', 'manager', 'office_manager'] },
-  { label: 'ROI Ladder', icon: Calculator, path: '/roi-ladder', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Purchase Calculator', icon: DollarSign, path: '/purchase-calculator', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Cutout Engine', icon: BarChart3, path: '/cutout', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Enterprise Model', icon: Beef, path: '/enterprise', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Weekly Playbook', icon: TrendingUp, path: '/playbook', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Cattle Lots', icon: Beef, path: '/lots', roles: ['super_admin', 'admin', 'manager', 'office_manager'] },
-  { label: 'Operational Programs', icon: Briefcase, path: '/programs', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Entity Financials', icon: DollarSign, path: '/entity-financials', roles: ['super_admin', 'admin', 'accountant', 'attorney_cpa'] },
-  { label: 'Financial Intelligence', icon: Building2, path: '/financial-intelligence', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Corporate Structure', icon: Building2, path: '/corporate-structure', roles: ['super_admin', 'admin', 'accountant', 'attorney_cpa', 'manager'] },
-  { label: 'Field Rep Portal', icon: Send, path: '/field-rep', roles: ['super_admin', 'admin', 'manager', 'field_rep', 'sales_rep'] },
-  { label: 'Feedlot Ops', icon: Wheat, path: '/feedlot-ops', roles: ['super_admin', 'admin', 'manager', 'feed_mill', 'feed_truck', 'cowboy'] },
-  { label: 'Lot Performance', icon: HeartPulse, path: '/lot-performance', roles: ['super_admin', 'admin', 'manager', 'cowboy', 'field_rep'] },
-  { label: 'Load Board', icon: Truck, path: '/load-board', roles: ['super_admin', 'admin', 'manager', 'dispatch', 'truck_driver', 'truck_owner'] },
-  { label: 'AI Ops Advisor', icon: Brain, path: '/ai-ops-advisor', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'AI Feed Planner', icon: Zap, path: '/ai-feed-planner', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Staff Portal', icon: Users, path: '/staff-portal', roles: ['super_admin', 'admin', 'office_manager', 'manager'] },
-  { label: 'Maintenance', icon: Wrench, path: '/maintenance', roles: ['super_admin', 'admin', 'manager', 'office_manager', 'welder', 'maintenance', 'cowboy'] },
-  { label: 'Feed & Health', icon: Pill, path: '/feed-health', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Trade Analytics', icon: Globe, path: '/trade-analytics', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Carcass Quality', icon: ShieldAlert, path: '/carcass-quality', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Sensitivity', icon: ShieldAlert, path: '/sensitivity', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Trucking', icon: Truck, path: '/trucking', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Global Intel', icon: Globe, path: '/global', roles: ['super_admin', 'admin', 'manager'] },
-  { label: 'Master Document', icon: BookOpen, path: '/document', roles: ['super_admin', 'admin', 'office_manager', 'accountant', 'attorney_cpa'] },
-  { label: 'Approvals', icon: ShieldAlert, path: '/approvals', roles: ['super_admin', 'admin'] },
-  { label: 'Sync Monitor', icon: Zap, path: '/sync-monitor', roles: ['super_admin', 'admin'] },
-  { label: 'Platform Docs', icon: BookOpen, path: '/platform-docs', roles: ['super_admin', 'admin'] },
-  { label: 'Settings', icon: Settings, path: '/settings', roles: ['super_admin', 'admin'] },
-  // External portals
-  { label: 'Live Marketplace', icon: ShoppingCart, path: '/marketplace', roles: ['buyer', 'super_admin', 'admin', 'manager'] },
-  { label: 'My Listings', icon: ListChecks, path: '/my-listings', roles: ['seller'] },
-  { label: 'Load Board', icon: Truck, path: '/load-board', roles: ['hauler'] },
-  { label: 'Legal & Financial', icon: Scale, path: '/attorney-portal', roles: ['attorney_cpa'] },
+  { label: 'Dashboard',             icon: LayoutDashboard, path: '/' },
+  { label: 'System Health',         icon: Activity,        path: '/system-health' },
+  { label: 'AI Management',         icon: Workflow,        path: '/ai-management' },
+  { label: 'AI Admin Control',      icon: Shield,          path: '/ai-admin' },
+  { label: 'Market Inputs',         icon: Activity,        path: '/market' },
+  { label: 'ROI Ladder',            icon: Calculator,      path: '/roi-ladder' },
+  { label: 'Purchase Calculator',   icon: DollarSign,      path: '/purchase-calculator' },
+  { label: 'Cutout Engine',         icon: BarChart3,       path: '/cutout' },
+  { label: 'Enterprise Model',      icon: Beef,            path: '/enterprise' },
+  { label: 'Weekly Playbook',       icon: TrendingUp,      path: '/playbook' },
+  { label: 'Cattle Lots',           icon: Beef,            path: '/lots' },
+  { label: 'Operational Programs',  icon: Briefcase,       path: '/programs' },
+  { label: 'Entity Financials',     icon: DollarSign,      path: '/entity-financials' },
+  { label: 'Financial Intelligence',icon: Building2,       path: '/financial-intelligence' },
+  { label: 'Corporate Structure',   icon: Building2,       path: '/corporate-structure' },
+  { label: 'Field Rep Portal',      icon: Send,            path: '/field-rep' },
+  { label: 'Feedlot Ops',           icon: Wheat,           path: '/feedlot-ops' },
+  { label: 'Lot Performance',       icon: HeartPulse,      path: '/lot-performance' },
+  { label: 'Load Board',            icon: Truck,           path: '/load-board' },
+  { label: 'AI Ops Advisor',        icon: Brain,           path: '/ai-ops-advisor' },
+  { label: 'AI Feed Planner',       icon: Zap,             path: '/ai-feed-planner' },
+  { label: 'Staff Portal',          icon: Users,           path: '/staff-portal' },
+  { label: 'Maintenance',           icon: Wrench,          path: '/maintenance' },
+  { label: 'Feed & Health',         icon: Pill,            path: '/feed-health' },
+  { label: 'Trade Analytics',       icon: Globe,           path: '/trade-analytics' },
+  { label: 'Carcass Quality',       icon: ShieldAlert,     path: '/carcass-quality' },
+  { label: 'Sensitivity',           icon: ShieldAlert,     path: '/sensitivity' },
+  { label: 'Trucking',              icon: Truck,           path: '/trucking' },
+  { label: 'Global Intel',          icon: Globe,           path: '/global' },
+  { label: 'Master Document',       icon: BookOpen,        path: '/document' },
+  { label: 'Approvals',             icon: ShieldAlert,     path: '/approvals' },
+  { label: 'Sync Monitor',          icon: Zap,             path: '/sync-monitor' },
+  { label: 'Platform Docs',         icon: BookOpen,        path: '/platform-docs' },
+  { label: 'Settings',              icon: Settings,        path: '/settings' },
+  { label: 'Live Marketplace',      icon: ShoppingCart,    path: '/marketplace' },
+  { label: 'My Listings',           icon: ListChecks,      path: '/my-listings' },
+  { label: 'Legal & Financial',     icon: Scale,           path: '/attorney-portal' },
 ];
 
 export default function Layout() {
@@ -60,13 +60,16 @@ export default function Layout() {
    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
    const { user } = useAuth();
 
-  // Filter nav items: full-access users see everything; section admins see their pages; others by role
+  // 3-tier nav filter:
+  // Tier 1 (super_admin / Jeff / Lane / Scott) → see everything
+  // Tier 2 (division admin) → see their division's pages only
+  // Tier 3 (employee) → see only the pages their role allows
+  const allowedPaths = getAllowedPagePaths(user);
   const navItems = navItemsConfig.filter(item => {
     if (!user) return false;
     if (isFullAccess(user)) return true;
-    const section = SECTION_ADMIN_SECTIONS[user.role];
-    if (section) return section.pages.includes(item.path);
-    return item.roles.includes(user.role);
+    if (allowedPaths === 'all') return true;
+    return allowedPaths.includes(item.path);
   });
 
   return (
@@ -112,13 +115,8 @@ export default function Layout() {
         {/* Footer */}
         <div className="p-3 border-t border-border text-xs text-muted-foreground space-y-1">
           <div className="truncate font-medium text-foreground">{user?.full_name || user?.email}</div>
-          <div className="truncate capitalize">
-            {isFullAccess(user)
-              ? <span className="text-primary font-medium">Full Access</span>
-              : SECTION_ADMIN_SECTIONS[user?.role]
-                ? <span className="text-amber-400">{SECTION_ADMIN_SECTIONS[user.role].label}</span>
-                : <span>{user?.role}</span>
-            }
+          <div className="truncate text-xs leading-tight">
+            {getAccessLabel(user)}
           </div>
           <div>v1.0 — Live</div>
         </div>

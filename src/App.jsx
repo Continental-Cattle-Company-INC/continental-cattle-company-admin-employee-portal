@@ -123,32 +123,32 @@ const AppRoutes = () => {
           <Route path="/settings" element={<Settings />} />
           <Route path="/purchase-calculator" element={<PurchaseCalculator />} />
           <Route path="/programs" element={<OperationalPrograms />} />
-          <Route path="/entity-financials" element={<RoleGate requiredRole="admin"><EntityFinancials /></RoleGate>} />
-          <Route path="/feed-health" element={<RoleGate requiredRole={['admin', 'manager']}><FeedAndHealth /></RoleGate>} />
+          <Route path="/entity-financials" element={<RoleGate requiredRole={['admin', 'financial_admin', 'accountant', 'attorney_cpa', 'manager']}><EntityFinancials /></RoleGate>} />
+          <Route path="/feed-health" element={<RoleGate requiredRole={['admin', 'manager', 'feedlot_admin']}><FeedAndHealth /></RoleGate>} />
           <Route path="/trade-analytics" element={<TradeAnalytics />} />
-          <Route path="/carcass-quality" element={<RoleGate requiredRole={['admin', 'manager']}><CarcassQualityValidation /></RoleGate>} />
-          <Route path="/sync-monitor" element={<RoleGate requiredRole="admin"><SyncMonitor /></RoleGate>} />
-          <Route path="/ai-control" element={<RoleGate requiredRole="admin"><AIControlCenter /></RoleGate>} />
-          <Route path="/master-control" element={<RoleGate requiredRole="admin"><MasterControlDashboard /></RoleGate>} />
-          <Route path="/validation" element={<RoleGate requiredRole="admin"><ValidationDashboard /></RoleGate>} />
-          <Route path="/system-health" element={<RoleGate requiredRole="admin"><SystemHealthDashboard /></RoleGate>} />
-          <Route path="/ai-management" element={<RoleGate requiredRole="admin"><AIPlatformManagement /></RoleGate>} />
-          <Route path="/ai-admin" element={<RoleGate requiredRole="admin"><AIAdminControl /></RoleGate>} />
+          <Route path="/carcass-quality" element={<RoleGate requiredRole={['admin', 'manager', 'market_admin', 'feedlot_admin']}><CarcassQualityValidation /></RoleGate>} />
+          <Route path="/sync-monitor" element={<RoleGate requiredRole={['admin', 'super_admin']}><SyncMonitor /></RoleGate>} />
+          <Route path="/ai-control" element={<RoleGate requiredRole={['admin', 'super_admin']}><AIControlCenter /></RoleGate>} />
+          <Route path="/master-control" element={<RoleGate requiredRole={['admin', 'super_admin']}><MasterControlDashboard /></RoleGate>} />
+          <Route path="/validation" element={<RoleGate requiredRole={['admin', 'super_admin']}><ValidationDashboard /></RoleGate>} />
+          <Route path="/system-health" element={<RoleGate requiredRole={['admin', 'super_admin']}><SystemHealthDashboard /></RoleGate>} />
+          <Route path="/ai-management" element={<RoleGate requiredRole={['admin', 'super_admin']}><AIPlatformManagement /></RoleGate>} />
+          <Route path="/ai-admin" element={<RoleGate requiredRole={['admin', 'super_admin']}><AIAdminControl /></RoleGate>} />
           <Route path="/bank-linking" element={<BankLinking />} />
-          <Route path="/financial-intelligence" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager']}><FinancialIntelligence /></RoleGate>} />
+          <Route path="/financial-intelligence" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'financial_admin', 'accountant']}><FinancialIntelligence /></RoleGate>} />
           <Route path="/field-rep" element={<FieldRepPortal />} />
-          <Route path="/corporate-structure" element={<RoleGate requiredRole={['admin', 'super_admin', 'accountant', 'attorney_cpa', 'manager']}><CorporateStructure /></RoleGate>} />
-          <Route path="/feedlot-ops" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'feed_mill', 'feed_truck', 'cowboy']}><FeedlotOps /></RoleGate>} />
-          <Route path="/ai-feed-planner" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager']}><AIFeedPlanner /></RoleGate>} />
-          <Route path="/staff-portal" element={<RoleGate requiredRole={['admin', 'super_admin', 'office_manager', 'manager']}><StaffPortal /></RoleGate>} />
-          <Route path="/maintenance" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'office_manager', 'welder', 'maintenance', 'cowboy']}><Maintenance /></RoleGate>} />
-          <Route path="/ai-ops-advisor" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager']}><AIOpsAdvisor /></RoleGate>} />
-          <Route path="/lot-performance" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'cowboy', 'field_rep']}><LotPerformance /></RoleGate>} />
+          <Route path="/corporate-structure" element={<RoleGate requiredRole={['admin', 'super_admin', 'accountant', 'attorney_cpa', 'manager', 'financial_admin']}><CorporateStructure /></RoleGate>} />
+          <Route path="/feedlot-ops" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'feedlot_admin', 'feed_mill', 'feed_truck', 'cowboy']}><FeedlotOps /></RoleGate>} />
+          <Route path="/ai-feed-planner" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'feedlot_admin']}><AIFeedPlanner /></RoleGate>} />
+          <Route path="/staff-portal" element={<RoleGate requiredRole={['admin', 'super_admin', 'office_manager', 'manager', 'feedlot_admin', 'trucking_admin', 'maintenance_admin', 'financial_admin', 'market_admin', 'staff_admin', 'field_admin']}><StaffPortal /></RoleGate>} />
+          <Route path="/maintenance" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'office_manager', 'feedlot_admin', 'maintenance_admin', 'trucking_admin', 'welder', 'maintenance', 'cowboy']}><Maintenance /></RoleGate>} />
+          <Route path="/ai-ops-advisor" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'feedlot_admin', 'market_admin']}><AIOpsAdvisor /></RoleGate>} />
+          <Route path="/lot-performance" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'feedlot_admin', 'field_admin', 'cowboy', 'field_rep']}><LotPerformance /></RoleGate>} />
           <Route path="/marketplace" element={<Marketplace />} />
-          <Route path="/load-board" element={<RoleGate requiredRole={['hauler', 'admin', 'super_admin']}><LoadBoard /></RoleGate>} />
-          <Route path="/my-listings" element={<RoleGate requiredRole={['seller', 'admin', 'super_admin']}><MyListings /></RoleGate>} />
-          <Route path="/attorney-portal" element={<RoleGate requiredRole={['attorney_cpa', 'admin', 'super_admin', 'accountant']}><AttorneyPortal /></RoleGate>} />
-          <Route path="/platform-docs" element={<RoleGate requiredRole="admin"><PlatformDocumentation /></RoleGate>} />
+          <Route path="/load-board" element={<RoleGate requiredRole={['hauler', 'admin', 'super_admin', 'trucking_admin', 'dispatch', 'truck_driver', 'truck_owner', 'manager']}><LoadBoard /></RoleGate>} />
+          <Route path="/my-listings" element={<RoleGate requiredRole={['seller', 'admin', 'super_admin', 'field_admin']}><MyListings /></RoleGate>} />
+          <Route path="/attorney-portal" element={<RoleGate requiredRole={['attorney_cpa', 'admin', 'super_admin', 'accountant', 'financial_admin']}><AttorneyPortal /></RoleGate>} />
+          <Route path="/platform-docs" element={<RoleGate requiredRole={['admin', 'super_admin']}><PlatformDocumentation /></RoleGate>} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
