@@ -11,6 +11,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 import Layout from '@/components/Layout';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Navigate } from 'react-router-dom';
+import { initOfflineEngine } from '@/lib/offlineEngine';
 
 // Page imports
 import Dashboard from './pages/Dashboard';
@@ -55,6 +56,7 @@ import LotPerformance from './pages/LotPerformance';
 import MyListings from './pages/MyListings';
 import AttorneyPortal from './pages/AttorneyPortal';
 import PlatformDocumentation from './pages/PlatformDocumentation';
+import SystemStatus from './pages/SystemStatus';
 import PendingApprovalScreen from './components/PendingApprovalScreen';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -151,6 +153,7 @@ const AppRoutes = () => {
           <Route path="/my-listings" element={<RoleGate requiredRole={['seller', 'admin', 'super_admin', 'field_admin']}><MyListings /></RoleGate>} />
           <Route path="/attorney-portal" element={<RoleGate requiredRole={['attorney_cpa', 'admin', 'super_admin', 'accountant', 'financial_admin']}><AttorneyPortal /></RoleGate>} />
           <Route path="/platform-docs" element={<RoleGate requiredRole={['admin', 'super_admin']}><PlatformDocumentation /></RoleGate>} />
+          <Route path="/system-status" element={<RoleGate requiredRole={['admin', 'super_admin']}><SystemStatus /></RoleGate>} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />
@@ -159,6 +162,11 @@ const AppRoutes = () => {
 };
 
 function App() {
+  // Initialize offline-first resilience engine
+  if (typeof window !== 'undefined') {
+    initOfflineEngine();
+  }
+
   return (
     <ThemeProvider>
       <AuthProvider>

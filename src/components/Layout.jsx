@@ -17,6 +17,7 @@ import {
 const navItemsConfig = [
   { label: 'Dashboard',             icon: LayoutDashboard, path: '/' },
   { label: 'System Health',         icon: Activity,        path: '/system-health' },
+  { label: 'System Status',         icon: Activity,        path: '/system-status' },
   { label: 'AI Management',         icon: Workflow,        path: '/ai-management' },
   { label: 'AI Admin Control',      icon: Shield,          path: '/ai-admin' },
   { label: 'Market Inputs',         icon: Activity,        path: '/market' },

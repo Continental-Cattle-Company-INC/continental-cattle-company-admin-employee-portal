@@ -16,6 +16,7 @@ const PLAN_TYPES = [
 import { BREED_TYPES, SEX_OPTIONS, getCattleLabel, isDairy, isBeefDairy, isFullBeef, getUsdaLimit as getUsdaLimitFromConfig, getTargetGrade, getPerformance } from '@/lib/cattleConfig';
 import { freightCostPerHead, TRUCKING_DEFAULTS } from '@/lib/truckingConfig';
 import { computeBillingMiles, estimateShrink, YARD_ADDR as YARD_ADDRESS, TRUCK_MPH_MIN, TRUCK_MPH_MAX, TRUCK_MPH_AVG } from '@/lib/mileageEngine';
+import { generateFullPlanDeterministic } from '@/lib/deterministicFallbacks';
 
 const FOCUS = [
   { value: 'roi',      label: 'Max ROI' },
@@ -589,18 +590,28 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
       version = (existing?.length || 0) + 1;
     } catch (_) {}
 
-    const fallback = generateFallbackPlan(econ, liveWeather);
-    setPlan({ ...fallback, _fallback: true });
+    // Generate deterministic fallback (always works, no AI needed)
+    const deterministicPlan = generateFullPlanDeterministic({
+      lot_id: lot?.lot_id,
+      breed_type: lot?.breed_type,
+      sex: lot?.sex,
+      focus,
+      buy_price_cwt: econ.ppCwt,
+      sell_weight: econ.sellWt,
+      target_grade: econ.targetGrade,
+    }, market, mileageResult, liveWeather);
+
+    setPlan({ ...deterministicPlan, _fallback: true });
     setLoading(false);
 
     let savedId = null;
     try {
-      savedId = await savePlan(fallback, false, version);
+      savedId = await savePlan(deterministicPlan, false, version);
       setCurrentSavedPlanId(savedId);
-      toast.success('Plan generated & saved');
+      toast.success('Plan generated & saved (deterministic)');
     } catch (_) { toast.success('Plan generated'); }
 
-    // Try AI upgrade
+    // Try AI upgrade (will fail gracefully if no credits)
     try {
       const result = await base44.integrations.Core.InvokeLLM({
         prompt: buildPrompt(econ),
@@ -626,7 +637,11 @@ NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
         queryClient.invalidateQueries({ queryKey: ['savedFeedPlans'] });
       }
       toast.success('Plan upgraded with AI & saved');
-    } catch (_) { /* credits exhausted — keep data-driven */ }
+    } catch (aiError) {
+      // AI failed (no credits, offline, etc) — keep deterministic plan
+      console.log('[AI FALLBACK] Using deterministic plan:', aiError.message);
+      toast.info('AI unavailable — using deterministic algorithms (no delay)');
+    }
   };
 
   // -------------------------------------------------------------------
