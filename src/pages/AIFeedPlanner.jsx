@@ -17,6 +17,28 @@ const YARD_ADDRESS = '17158 E CR 49, Shattuck, OK 73858';
 const YARD_LAT = 36.2687;
 const YARD_LON = -99.8773;
 
+// USDA BQA / Packer max age limits by grade (days)
+// Select: 30 months max (~912 days) — most common for fed steers/heifers
+// Prime/Choice: 42 months max (~1,278 days) — requires proper marbling
+// Standard: 42 months max
+// Commercial: >42 months — NOT suitable for fed/hfr program
+const USDA_AGE_LIMITS = {
+  select: { days: 912, months: 30, label: 'Select (≤30 mo)', grade: 'Select' },
+  choice: { days: 1278, months: 42, label: 'Choice (≤42 mo)', grade: 'Choice' },
+  prime:  { days: 1278, months: 42, label: 'Prime (≤42 mo)',  grade: 'Prime'  },
+  standard: { days: 1278, months: 42, label: 'Standard (≤42 mo)', grade: 'Standard' },
+};
+
+// Determine the applicable USDA age limit based on cattle class and target focus
+const getUsdaLimit = (cattleClass, focusVal) => {
+  const isHolstein = cattleClass?.includes('holstein') || cattleClass?.includes('dairy');
+  // Holsteins typically grade Select; beef breeds targeting Choice/Prime
+  if (isHolstein) return USDA_AGE_LIMITS.select;
+  if (focusVal === 'grade') return USDA_AGE_LIMITS.prime;
+  if (focusVal === 'roi' || focusVal === 'balanced') return USDA_AGE_LIMITS.choice;
+  return USDA_AGE_LIMITS.choice; // default to Choice limit
+};
+
 const FOCUS = [
   { value: 'roi', label: 'Max ROI' },
   { value: 'grade', label: 'Max Grade & Yield (Prime/Choice)' },
@@ -114,10 +136,11 @@ export default function AIFeedPlanner() {
     return p;
   };
 
-  // Compute date-based projections
+  // Compute date-based projections with USDA BQA grade-based age limits
   const computeDateProjections = (dof) => {
     const intake = intakeDate || lot?.purchase_date || '';
     const ageEntry = parseInt(ageAtEntryDays) || null;
+    const usdaLimit = getUsdaLimit(lot?.cattle_class, focus);
 
     let expectedOutDate = null;
     if (intake && dof) {
@@ -126,17 +149,12 @@ export default function AIFeedPlanner() {
       expectedOutDate = d.toISOString().split('T')[0];
     }
 
-    let maxDofTo426 = null;
-    let breakevenDaysNote = null;
+    let maxDofToLimit = null;
     if (ageEntry !== null) {
-      maxDofTo426 = Math.max(0, 426 - ageEntry);
-      breakevenDaysNote = maxDofTo426;
-    } else if (intake) {
-      // Estimate age from purchase_date if no age provided (Holstein calves ~60 days at arrival typical)
-      maxDofTo426 = null;
+      maxDofToLimit = Math.max(0, usdaLimit.days - ageEntry);
     }
 
-    return { expectedOutDate, maxDofTo426, intake };
+    return { expectedOutDate, maxDofToLimit, usdaLimit, intake };
   };
 
   const buildPrompt = () => {
@@ -196,7 +214,16 @@ LIVE WEATHER — ${YARD_ADDRESS} (fetched at plan generation):
     const envInfo = environment ? `\nENVIRONMENT / NOTES: ${environment}` : '';
     const extra = additionalContext ? `\nADDITIONAL CONTEXT: ${additionalContext}` : '';
 
-    return `You are a world-class livestock nutritionist and cattle herd health veterinarian with deep expertise in beef production economics. 
+    const usdaLimitForPrompt = getUsdaLimit(lot?.cattle_class, focus);
+    return `You are a world-class livestock nutritionist and cattle herd health veterinarian with deep expertise in beef production economics and USDA grading standards. 
+
+USDA BQA AGE LIMITS (USDA AMS / Packer Standards):
+- Select grade: Maximum 30 months (912 days) — most common for fed steers/heifers
+- Choice grade: Maximum 42 months (1,278 days)
+- Prime grade:  Maximum 42 months (1,278 days)
+- Commercial:   Over 42 months — NOT eligible for fed/hfr premium pricing
+- Target grade for this lot: ${usdaLimitForPrompt.grade} — must be marketed by ${usdaLimitForPrompt.months} months (${usdaLimitForPrompt.days} days) to qualify
+${ageAtEntryDays ? `- Current age at entry: ${ageAtEntryDays} days — maximum ${usdaLimitForPrompt.days - parseInt(ageAtEntryDays)} days remaining on feed to stay within ${usdaLimitForPrompt.grade} age limit` : ''}
 
 Generate a comprehensive, highly specific ${planType === 'full' ? 'FEED RATION AND VACCINATION SCHEDULE' : planType === 'ration' ? 'FEED RATION PROGRAM' : 'VACCINATION AND HEALTH SCHEDULE'} optimized for: ${FOCUS.find(f => f.value === focus)?.label.toUpperCase()}.
 
@@ -267,23 +294,23 @@ Provide a complete timeline from arrival/processing through market:
     const buyPricePerHead = purchasePriceCwt / 100 * buyWeight;
     const totalCostPerHead = buyPricePerHead + feedCost + yardageCost + healthCostHd + 35;
 
-    // Date / age projections
-    const { expectedOutDate, maxDofTo426 } = computeDateProjections(dof);
+    // Date / age projections with USDA BQA grade-based age limits
+    const { expectedOutDate, maxDofToLimit, usdaLimit } = computeDateProjections(dof);
     const ageEntry = parseInt(ageAtEntryDays) || null;
     const ageAtSale = ageEntry !== null ? ageEntry + dof : null;
-    const exceeds426 = ageAtSale !== null && ageAtSale > 426;
+    const exceedsLimit = ageAtSale !== null && ageAtSale > usdaLimit.days;
 
-    // 426-day age breakeven: project weight and cost at exactly 426 days
-    let breakeven426 = null;
-    let weightAt426 = null;
+    // Breakeven at USDA age limit: project weight and cost at the grade's max age
+    let breakevenAtLimit = null;
+    let weightAtLimit = null;
     if (ageEntry !== null) {
-      const dofTo426 = Math.max(0, 426 - ageEntry);
+      const dofToLimit = Math.max(0, usdaLimit.days - ageEntry);
       const avgADG = gainLbs > 0 ? gainLbs / dof : 2.8;
-      weightAt426 = Math.round(buyWeight + avgADG * dofTo426);
-      const feedCost426 = Math.max(0, (weightAt426 - buyWeight)) * cog;
-      const yardage426 = yardage * dofTo426;
-      const totalCost426 = buyPricePerHead + feedCost426 + yardage426 + healthCostHd + 35;
-      breakeven426 = weightAt426 > 0 ? parseFloat((totalCost426 / weightAt426 * 100).toFixed(2)) : null;
+      weightAtLimit = Math.round(buyWeight + avgADG * dofToLimit);
+      const feedCostLimit = Math.max(0, (weightAtLimit - buyWeight)) * cog;
+      const yardageLimit = yardage * dofToLimit;
+      const totalCostLimit = buyPricePerHead + feedCostLimit + yardageLimit + healthCostHd + 35;
+      breakevenAtLimit = weightAtLimit > 0 ? parseFloat((totalCostLimit / weightAtLimit * 100).toFixed(2)) : null;
     }
     const lc = mkt?.lc_futures || 241;
     const corn = mkt?.corn_price || 4.22;
@@ -397,14 +424,16 @@ TOTAL COST:              $${totalCostPerHead.toFixed(0)}/hd
 TIMELINE:
 • Days on feed:          ${dof} days
 • Expected out date:     ${expectedOutDate || 'N/A (set intake date)'}
-${ageAtSale !== null ? `• Projected age at sale: ${ageAtSale} days${exceeds426 ? ' ⚠ EXCEEDS 426-DAY LIMIT' : ' ✓ Within 426-day limit'}` : ''}
-${maxDofTo426 !== null ? `• Max DOF to stay ≤426:  ${maxDofTo426} days` : ''}
+${ageAtSale !== null ? `• Projected age at sale: ${ageAtSale} days (${(ageAtSale / 30.4).toFixed(1)} mo)${exceedsLimit ? ` ⚠ EXCEEDS USDA ${usdaLimit.grade.toUpperCase()} LIMIT (${usdaLimit.months} mo / ${usdaLimit.days} days)` : ` ✓ Within USDA ${usdaLimit.grade} limit (${usdaLimit.months} mo)`}` : ''}
+${maxDofToLimit !== null ? `• Max DOF within ${usdaLimit.label}: ${maxDofToLimit} days remaining` : ''}
 
-${breakeven426 !== null ? `426-DAY AGE BREAKEVEN ANALYSIS:
-• Weight at 426 days:    ${weightAt426} lbs/hd (est.)
-• Breakeven price:       $${breakeven426}/cwt to recover all costs
-• Current LC futures:    $${lc}/cwt — ${lc >= breakeven426 ? '✓ ABOVE breakeven' : '⚠ BELOW breakeven at $' + (breakeven426 - lc).toFixed(2) + '/cwt deficit'}
-${l?.head_count ? `• Breakeven lot total:   $${(breakeven426 / 100 * weightAt426 * l.head_count).toFixed(0)} for ${l.head_count} hd` : ''}
+${breakevenAtLimit !== null ? `USDA BQA AGE-LIMIT BREAKEVEN — ${usdaLimit.label.toUpperCase()}:
+• Max age limit:         ${usdaLimit.months} months (${usdaLimit.days} days) per USDA AMS / BQA packer standards
+• Weight at age limit:   ${weightAtLimit} lbs/hd (est.)
+• Breakeven price:       $${breakevenAtLimit}/cwt to recover all costs by age limit
+• Current LC futures:    $${lc}/cwt — ${lc >= breakevenAtLimit ? '✓ ABOVE breakeven — profitable at limit' : '⚠ BELOW breakeven — $' + (breakevenAtLimit - lc).toFixed(2) + '/cwt deficit at limit'}
+${l?.head_count ? `• Lot breakeven total:   $${(breakevenAtLimit / 100 * weightAtLimit * l.head_count).toFixed(0)} revenue needed for ${l.head_count} hd` : ''}
+• NOTE: ${usdaLimit.grade === 'Select' ? 'Select grade cattle must be marketed by 30 months (912 days) per USDA AMS standards' : 'Prime/Choice cattle must be marketed by 42 months (1,278 days) — older animals grade Commercial and lose fed/hfr premium'}
 ─────────────────────────────────────────
 ` : ''}
 REVENUE PROJECTION:
@@ -451,16 +480,17 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
       vaccination_schedule: vaccinationSchedule,
       economic_projection: econProjection,
       ai_recommendations: recommendations,
-      summary: `${l ? `Lot ${l.lot_id || l.cattle_class} (${l.head_count} hd)` : 'General program'}: Estimated ${roi.toFixed(1)}% ROI with $${profitPerHead.toFixed(0)}/hd projected profit over ${dof} days on feed. Total cost: $${totalCostPerHead.toFixed(0)}/hd. Buy: $${purchasePriceCwt.toFixed(2)}/cwt. Sell target: ${sellWeight} lbs @ $${lc}/cwt.${expectedOutDate ? ' Est. out: ' + expectedOutDate + '.' : ''}${breakeven426 !== null ? ' 426-day BE: $' + breakeven426 + '/cwt.' : ''} Grade target: ${targetGrade}.`,
+      summary: `${l ? `Lot ${l.lot_id || l.cattle_class} (${l.head_count} hd)` : 'General program'}: Estimated ${roi.toFixed(1)}% ROI with $${profitPerHead.toFixed(0)}/hd projected profit over ${dof} days on feed. Total cost: $${totalCostPerHead.toFixed(0)}/hd. Buy: $${purchasePriceCwt.toFixed(2)}/cwt. Sell target: ${sellWeight} lbs @ $${lc}/cwt.${expectedOutDate ? ' Est. out: ' + expectedOutDate + '.' : ''}${breakevenAtLimit !== null ? ` USDA ${usdaLimit.grade} BE: $${breakevenAtLimit}/cwt at ${usdaLimit.months}-mo limit.` : ''} Grade target: ${targetGrade}.`,
       estimated_profit_per_head: Math.round((revenuePerHead * 0.97) - totalCostPerHead),
       estimated_roi_percent: parseFloat(roi.toFixed(1)),
       estimated_cost_per_head: Math.round(totalCostPerHead),
       target_grade: targetGrade,
       // Date / age fields passed back for saving
       _expectedOutDate: expectedOutDate,
-      _maxDofTo426: maxDofTo426,
-      _breakeven426: breakeven426,
-      _weightAt426: weightAt426,
+      _maxDofToLimit: maxDofToLimit,
+      _usdaLimit: usdaLimit,
+      _breakevenAtLimit: breakevenAtLimit,
+      _weightAtLimit: weightAtLimit,
       _ageAtEntry: ageEntry,
     };
   };
@@ -480,9 +510,9 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
       target_weight: targetWeight ? Number(targetWeight) : undefined,
       expected_out_date: planData._expectedOutDate || undefined,
       age_at_entry_days: planData._ageAtEntry != null ? planData._ageAtEntry : undefined,
-      max_dof_to_426: planData._maxDofTo426 != null ? planData._maxDofTo426 : undefined,
-      breakeven_at_426_days: planData._breakeven426 != null ? planData._breakeven426 : undefined,
-      breakeven_weight_at_426: planData._weightAt426 != null ? planData._weightAt426 : undefined,
+      max_dof_to_426: planData._maxDofToLimit != null ? planData._maxDofToLimit : undefined,
+      breakeven_at_426_days: planData._breakevenAtLimit != null ? planData._breakevenAtLimit : undefined,
+      breakeven_weight_at_426: planData._weightAtLimit != null ? planData._weightAtLimit : undefined,
       environment,
       additional_context: additionalContext,
       ration_program: planData.ration_program || '',
@@ -815,7 +845,7 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
 
           {/* Age at Entry */}
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Age at Entry (days) <span className="text-primary">— enables 426-day BE</span></label>
+            <label className="text-xs text-muted-foreground mb-1 block">Age at Entry (days) <span className="text-primary">— enables USDA BQA age-limit breakeven</span></label>
             <input type="number" placeholder="e.g. 100" className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
               value={ageAtEntryDays} onChange={e => setAgeAtEntryDays(e.target.value)} />
           </div>
@@ -901,33 +931,48 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
             </div>
           )}
 
-          {/* Date & 426-day breakeven banner */}
-          {(plan._expectedOutDate || plan._breakeven426 != null) && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {plan._expectedOutDate && (
-                <div className="bg-card border border-border rounded-xl p-4 text-center">
-                  <div className="font-bebas text-xl text-primary">{plan._expectedOutDate}</div>
-                  <div className="text-xs text-muted-foreground">Expected Out Date</div>
+          {/* Date & USDA BQA Age-Limit Breakeven banner */}
+          {(plan._expectedOutDate || plan._breakevenAtLimit != null) && (
+            <div className="space-y-2">
+              {/* USDA grade limit context bar */}
+              {plan._usdaLimit && (
+                <div className={`flex flex-wrap items-center gap-2 px-4 py-2 rounded-lg border text-xs font-medium ${plan._ageAtEntry && (plan._ageAtEntry + (parseInt(daysOnFeed) || 0)) > plan._usdaLimit.days ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-success/10 border-success/30 text-success'}`}>
+                  <span>USDA BQA Grade Limit:</span>
+                  <span className="font-bebas text-sm">{plan._usdaLimit.label}</span>
+                  <span>|</span>
+                  <span>Max age {plan._usdaLimit.months} months ({plan._usdaLimit.days} days) to qualify as {plan._usdaLimit.grade}</span>
+                  {plan._ageAtEntry && (plan._ageAtEntry + (parseInt(daysOnFeed) || 0)) > plan._usdaLimit.days
+                    ? <span className="ml-auto">⚠ Projected sale age EXCEEDS {plan._usdaLimit.grade} limit — animals may grade Commercial</span>
+                    : <span className="ml-auto">✓ Within {plan._usdaLimit.grade} packer age limit</span>
+                  }
                 </div>
               )}
-              {plan._maxDofTo426 != null && (
-                <div className={`bg-card border rounded-xl p-4 text-center ${plan._maxDofTo426 < (parseInt(daysOnFeed) || 0) ? 'border-danger/40' : 'border-border'}`}>
-                  <div className={`font-bebas text-xl ${plan._maxDofTo426 < (parseInt(daysOnFeed) || 0) ? 'text-danger' : 'text-success'}`}>{plan._maxDofTo426} days</div>
-                  <div className="text-xs text-muted-foreground">Max DOF to 426-day limit</div>
-                </div>
-              )}
-              {plan._weightAt426 != null && (
-                <div className="bg-card border border-border rounded-xl p-4 text-center">
-                  <div className="font-bebas text-xl text-amber-400">{plan._weightAt426} lbs</div>
-                  <div className="text-xs text-muted-foreground">Est. Weight at 426 Days</div>
-                </div>
-              )}
-              {plan._breakeven426 != null && (
-                <div className="bg-card border border-border rounded-xl p-4 text-center">
-                  <div className="font-bebas text-xl text-warning">${plan._breakeven426}/cwt</div>
-                  <div className="text-xs text-muted-foreground">Breakeven at 426 Days</div>
-                </div>
-              )}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {plan._expectedOutDate && (
+                  <div className="bg-card border border-border rounded-xl p-4 text-center">
+                    <div className="font-bebas text-xl text-primary">{plan._expectedOutDate}</div>
+                    <div className="text-xs text-muted-foreground">Expected Out Date</div>
+                  </div>
+                )}
+                {plan._maxDofToLimit != null && plan._usdaLimit && (
+                  <div className={`bg-card border rounded-xl p-4 text-center ${plan._maxDofToLimit < (parseInt(daysOnFeed) || 0) ? 'border-danger/40' : 'border-border'}`}>
+                    <div className={`font-bebas text-xl ${plan._maxDofToLimit < (parseInt(daysOnFeed) || 0) ? 'text-danger' : 'text-success'}`}>{plan._maxDofToLimit} days</div>
+                    <div className="text-xs text-muted-foreground">Max DOF — {plan._usdaLimit.grade} limit</div>
+                  </div>
+                )}
+                {plan._weightAtLimit != null && plan._usdaLimit && (
+                  <div className="bg-card border border-border rounded-xl p-4 text-center">
+                    <div className="font-bebas text-xl text-amber-400">{plan._weightAtLimit} lbs</div>
+                    <div className="text-xs text-muted-foreground">Est. Wt at {plan._usdaLimit.months}-mo Limit</div>
+                  </div>
+                )}
+                {plan._breakevenAtLimit != null && plan._usdaLimit && (
+                  <div className="bg-card border border-border rounded-xl p-4 text-center">
+                    <div className="font-bebas text-xl text-warning">${plan._breakevenAtLimit}/cwt</div>
+                    <div className="text-xs text-muted-foreground">BE at {plan._usdaLimit.grade} Age Limit</div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
