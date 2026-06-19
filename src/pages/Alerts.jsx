@@ -28,6 +28,16 @@ export default function Alerts() {
     queryFn: () => base44.entities.Alert.list('-created_date', 100),
   });
 
+  // Real-time subscription for instant notifications
+  useState(() => {
+    const unsubscribe = base44.entities.Alert.subscribe((event) => {
+      if (event.type === 'create') {
+        queryClient.invalidateQueries({ queryKey: ['alerts'] });
+      }
+    });
+    return unsubscribe;
+  }, []);
+
   const acknowledgeMutation = useMutation({
     mutationFn: async (alertId) => {
       const user = await base44.auth.me();

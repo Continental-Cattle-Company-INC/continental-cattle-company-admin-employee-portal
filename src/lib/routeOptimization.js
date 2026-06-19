@@ -9,6 +9,7 @@
  * Returns optimal route with billing miles, ETA, and road conditions
  */
 
+/* global Deno, process */
 import { fetchLiveDieselPrices, getDieselForRoute } from './realTimeDiesel.js';
 
 const ROUTE_CACHE = new Map();
