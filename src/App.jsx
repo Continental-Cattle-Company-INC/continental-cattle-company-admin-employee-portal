@@ -59,6 +59,8 @@ import MyListings from './pages/MyListings';
 import AttorneyPortal from './pages/AttorneyPortal';
 import PlatformDocumentation from './pages/PlatformDocumentation';
 import SystemStatus from './pages/SystemStatus';
+import About from './pages/About';
+import Contact from './pages/Contact';
 import PendingApprovalScreen from './components/PendingApprovalScreen';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -178,6 +180,8 @@ const AppRoutes = () => {
           <Route path="/attorney-portal" element={<RoleGate requiredRole={['attorney_cpa', 'admin', 'super_admin', 'accountant', 'financial_admin']}><AttorneyPortal /></RoleGate>} />
           <Route path="/platform-docs" element={<RoleGate requiredRole={['admin', 'super_admin']}><PlatformDocumentation /></RoleGate>} />
           <Route path="/system-status" element={<RoleGate requiredRole={['admin', 'super_admin']}><SystemStatus /></RoleGate>} />
+          <Route path="/about" element={<PageWrapper><About /></PageWrapper>} />
+          <Route path="/contact" element={<PageWrapper><Contact /></PageWrapper>} />
           <Route path="/commodity-sourcing" element={<RoleGate requiredRole={['admin', 'super_admin', 'manager', 'feedlot_admin', 'feed_mill']}><CommoditySourcing /></RoleGate>} />
         </Route>
       </Route>

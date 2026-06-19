@@ -9,7 +9,7 @@ import {
   LayoutDashboard, TrendingUp, Calculator, BarChart3,
   Beef, Truck, Globe, BookOpen, Settings, ShieldAlert, Activity, Menu, X, DollarSign,
   Briefcase, Pill, Zap, Workflow, Shield, ShoppingCart, Scale, ListChecks, Building2,
-  Send, Wheat, HeartPulse, Users, Wrench, Brain, Bell
+  Send, Wheat, HeartPulse, Users, Wrench, Brain, Bell, Phone
 } from 'lucide-react';
 
 // Nav items — the `roles` array is used as a FALLBACK only when a user doesn't match
@@ -57,6 +57,8 @@ const navItemsConfig = [
   { label: 'Live Marketplace',      icon: ShoppingCart,    path: '/marketplace' },
   { label: 'My Listings',           icon: ListChecks,      path: '/my-listings' },
   { label: 'Legal & Financial',     icon: Scale,           path: '/attorney-portal' },
+  { label: 'About',                 icon: BookOpen,        path: '/about' },
+  { label: 'Contact',               icon: Phone,           path: '/contact' },
 ];
 
 export default function Layout() {

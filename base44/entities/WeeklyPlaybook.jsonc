@@ -6,6 +6,11 @@
       "type": "string",
       "format": "date"
     },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Optional description or summary of this week's playbook (up to 1000 characters)"
+    },
     "buy_signals": {
       "type": "array",
       "items": {
