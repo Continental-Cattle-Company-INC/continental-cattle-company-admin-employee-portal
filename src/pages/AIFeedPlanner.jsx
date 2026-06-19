@@ -350,11 +350,8 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
     };
   };
 
-  const savePlan = async (planData, isAi = false) => {
+  const savePlan = async (planData, isAi = false, version = 1) => {
     const l = lots.find(lo => lo.id === selectedLot);
-    // Count existing versions for this lot to auto-increment
-    const existingForLot = savedPlans.filter(p => p.lot_id === selectedLot);
-    const version = existingForLot.length + 1;
 
     const record = {
       lot_id: selectedLot || '',
@@ -418,16 +415,29 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
     setPlan(null);
     setCurrentSavedPlanId(null);
 
-    // Always generate data-driven plan instantly
+    // Fetch a fresh count of existing plans for this lot to get correct version number
+    let version = 1;
+    try {
+      const existing = selectedLot
+        ? await base44.entities.SavedFeedPlan.filter({ lot_id: selectedLot })
+        : await base44.entities.SavedFeedPlan.list();
+      version = (existing?.length || 0) + 1;
+    } catch (_) {}
+
+    // Generate data-driven plan instantly
     const fallback = generateFallbackPlan();
-    const fallbackPlan = { ...fallback, _fallback: true };
-    setPlan(fallbackPlan);
+    setPlan({ ...fallback, _fallback: true });
     setLoading(false);
 
-    // Auto-save data-driven plan immediately
-    const savedId = await savePlan(fallback, false);
-    setCurrentSavedPlanId(savedId);
-    toast.success('Plan generated & saved');
+    // Auto-save immediately (don't block UI on save failure)
+    let savedId = null;
+    try {
+      savedId = await savePlan(fallback, false, version);
+      setCurrentSavedPlanId(savedId);
+      toast.success('Plan generated & saved');
+    } catch (_) {
+      toast.success('Plan generated');
+    }
 
     // Silently try to upgrade with AI in the background
     try {
@@ -450,17 +460,13 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
         }
       });
       setPlan(result);
-      // Update saved record with AI version
       if (savedId) {
-        await base44.entities.SavedFeedPlan.update(savedId, {
-          ...result,
-          is_ai_generated: true,
-        });
+        await base44.entities.SavedFeedPlan.update(savedId, { ...result, is_ai_generated: true });
         queryClient.invalidateQueries({ queryKey: ['savedFeedPlans'] });
       }
       toast.success('Plan upgraded with AI & saved');
     } catch (_) {
-      // Keep the data-driven plan — already saved
+      // Credits exhausted or error — keep data-driven plan, already saved
     }
   };
 
