@@ -127,8 +127,7 @@
         "role": {
           "$in": [
             "admin",
-            "manager",
-            "user"
+            "financial_admin"
           ]
         }
       }
