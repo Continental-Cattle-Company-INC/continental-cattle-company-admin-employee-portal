@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/AuthContext';
 import SectionHeader from '@/components/SectionHeader';
-import { Sparkles, Wheat, Syringe, RefreshCw, ChevronDown, ChevronRight, TrendingUp, Save, FolderOpen, Clock, Plus, X, CloudSun } from 'lucide-react';
+import { Sparkles, Wheat, Syringe, RefreshCw, ChevronDown, ChevronRight, TrendingUp, Save, FolderOpen, Clock, Plus, X, CloudSun, MapPin, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 
@@ -13,42 +13,47 @@ const PLAN_TYPES = [
   { value: 'vaccination', label: 'Vaccination Schedule Only', icon: Syringe },
 ];
 
+// Destination yard — Shattuck, OK
 const YARD_ADDRESS = '17158 E CR 49, Shattuck, OK 73858';
 const YARD_LAT = 36.2687;
 const YARD_LON = -99.8773;
+const AVG_SPEED_MPH = 50;
 
-// USDA BQA / Packer max age limits by grade (days)
-// Select: 30 months max (~912 days) — most common for fed steers/heifers
-// Prime/Choice: 42 months max (~1,278 days) — requires proper marbling
-// Standard: 42 months max
-// Commercial: >42 months — NOT suitable for fed/hfr program
+// USDA BQA age limits by grade
 const USDA_AGE_LIMITS = {
-  select: { days: 912, months: 30, label: 'Select (≤30 mo)', grade: 'Select' },
-  choice: { days: 1278, months: 42, label: 'Choice (≤42 mo)', grade: 'Choice' },
-  prime:  { days: 1278, months: 42, label: 'Prime (≤42 mo)',  grade: 'Prime'  },
+  select:   { days: 912,  months: 30, label: 'Select (≤30 mo)',   grade: 'Select'   },
+  choice:   { days: 1278, months: 42, label: 'Choice (≤42 mo)',   grade: 'Choice'   },
+  prime:    { days: 1278, months: 42, label: 'Prime (≤42 mo)',    grade: 'Prime'    },
   standard: { days: 1278, months: 42, label: 'Standard (≤42 mo)', grade: 'Standard' },
 };
 
-// Determine the applicable USDA age limit based on cattle class and target focus
 const getUsdaLimit = (cattleClass, focusVal) => {
   const isHolstein = cattleClass?.includes('holstein') || cattleClass?.includes('dairy');
-  // Holsteins typically grade Select; beef breeds targeting Choice/Prime
   if (isHolstein) return USDA_AGE_LIMITS.select;
   if (focusVal === 'grade') return USDA_AGE_LIMITS.prime;
-  if (focusVal === 'roi' || focusVal === 'balanced') return USDA_AGE_LIMITS.choice;
-  return USDA_AGE_LIMITS.choice; // default to Choice limit
+  return USDA_AGE_LIMITS.choice;
 };
 
 const FOCUS = [
-  { value: 'roi', label: 'Max ROI' },
-  { value: 'grade', label: 'Max Grade & Yield (Prime/Choice)' },
-  { value: 'adr', label: 'Max ADR / Speed to Market' },
-  { value: 'cost', label: 'Minimize Cost of Gain' },
+  { value: 'roi',      label: 'Max ROI' },
+  { value: 'grade',    label: 'Max Grade & Yield (Prime/Choice)' },
+  { value: 'adr',      label: 'Max ADR / Speed to Market' },
+  { value: 'cost',     label: 'Minimize Cost of Gain' },
   { value: 'balanced', label: 'Balanced (Grade + Cost + ROI)' },
 ];
 
-function PlanSection({ title, icon: SectionIcon, color, content, defaultOpen = false }) {
-  const Icon = SectionIcon;
+// Approximate shrink lookup by distance
+const estimateShrinkPct = (miles) => {
+  if (!miles || miles <= 0) return 2.0;
+  if (miles < 100)  return 2.0;
+  if (miles < 250)  return 2.5;
+  if (miles < 500)  return 3.0;
+  if (miles < 750)  return 3.5;
+  if (miles < 1000) return 4.0;
+  return 4.5;
+};
+
+function PlanSection({ title, icon: Icon, color, content, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className={`border rounded-xl overflow-hidden ${color}`}>
@@ -73,49 +78,63 @@ function PlanSection({ title, icon: SectionIcon, color, content, defaultOpen = f
 export default function AIFeedPlanner() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  // Lot / plan config
   const [selectedLot, setSelectedLot] = useState('');
   const [planType, setPlanType] = useState('full');
   const [focus, setFocus] = useState('balanced');
-  const [daysOnFeed, setDaysOnFeed] = useState('');
-  const [targetWeight, setTargetWeight] = useState('');
-  const [environment, setEnvironment] = useState('');
+
+  // Core cattle economics inputs
+  const [arrivalWt, setArrivalWt]         = useState('');   // lbs/hd at arrival
+  const [shippingWt, setShippingWt]       = useState('');   // lbs/hd target sell wt
+  const [purchasePrice, setPurchasePrice] = useState('');   // $/cwt
+  const [adg, setAdg]                     = useState('');   // lbs/hd/day
+  const [cog, setCog]                     = useState('');   // $/lb cost of gain
+  const [daysOnFeed, setDaysOnFeed]       = useState('');   // DOF override
+  const [interestRate, setInterestRate]   = useState('8');  // % annual
+  const [truckingIn, setTruckingIn]       = useState('');   // $/hd freight in
+  const [truckingOut, setTruckingOut]     = useState('');   // $/hd freight out
+  const [intakeDate, setIntakeDate]       = useState('');
+  const [ageAtEntryDays, setAgeAtEntryDays] = useState('');
   const [additionalContext, setAdditionalContext] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [plan, setPlan] = useState(null);
+
+  // Origin / transit
+  const [originCity, setOriginCity]       = useState('');   // free-text "City, State"
+  const [transitMiles, setTransitMiles]   = useState(null); // computed
+  const [transitHours, setTransitHours]   = useState(null); // computed
+  const [transitShrink, setTransitShrink] = useState(null); // computed %
+  const [geocoding, setGeocoding]         = useState(false);
+  const [shrinkOverride, setShrinkOverride] = useState(''); // manual override
+
+  // UI state
+  const [loading, setLoading]             = useState(false);
+  const [plan, setPlan]                   = useState(null);
   const [showSavedPlans, setShowSavedPlans] = useState(false);
   const [currentSavedPlanId, setCurrentSavedPlanId] = useState(null);
-  const [weather, setWeather] = useState(null);
+  const [weather, setWeather]             = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
-  const [intakeDate, setIntakeDate] = useState('');
-  const [purchasePricePerUnit, setPurchasePricePerUnit] = useState('');
-  const [purchasePriceUnit, setPurchasePriceUnit] = useState('cwt');
-  const [ageAtEntryDays, setAgeAtEntryDays] = useState('');
 
+  // Data queries
   const { data: lots = [] } = useQuery({
     queryKey: ['activeLots'],
     queryFn: () => base44.entities.CattleLot.filter({ status: 'active' }, '-purchase_date', 200),
   });
-
   const { data: savedPlans = [] } = useQuery({
     queryKey: ['savedFeedPlans'],
     queryFn: () => base44.entities.SavedFeedPlan.list('-created_date', 50),
   });
-
   const { data: feedProtocols = [] } = useQuery({
     queryKey: ['feedProtocols'],
     queryFn: () => base44.entities.FeedProtocol.list('-cost_per_ton', 50),
   });
-
   const { data: healthProtocols = [] } = useQuery({
     queryKey: ['healthProtocols'],
     queryFn: () => base44.entities.HealthProtocol.list('protocol_name', 50),
   });
-
   const { data: marketInputs = [] } = useQuery({
     queryKey: ['marketInputs'],
     queryFn: () => base44.entities.MarketInputs.list('-date', 1),
   });
-
   const { data: healthEvents = [] } = useQuery({
     queryKey: ['healthEvents', selectedLot],
     queryFn: () => selectedLot
@@ -124,368 +143,354 @@ export default function AIFeedPlanner() {
     enabled: !!selectedLot,
   });
 
-  const lot = lots.find(l => l.id === selectedLot);
+  const lot    = lots.find(l => l.id === selectedLot);
   const market = marketInputs[0];
 
-  // Normalize purchase price to $/cwt for calculations
-  const getPurchasePriceCwt = (buyWeight) => {
-    const p = parseFloat(purchasePricePerUnit) || (lot?.purchase_price) || 150;
-    if (purchasePriceUnit === 'cwt') return p;
-    if (purchasePriceUnit === 'lb') return p * 100;
-    if (purchasePriceUnit === 'head') return buyWeight > 0 ? (p / buyWeight) * 100 : 150;
-    return p;
-  };
+  // -------------------------------------------------------------------
+  // Geocode origin → compute miles, hours, shrink
+  // -------------------------------------------------------------------
+  const computeTransit = async () => {
+    if (!originCity.trim()) return;
+    setGeocoding(true);
+    try {
+      // Use Open-Meteo geocoding (free, no key)
+      const geo = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(originCity)}&count=1&language=en&format=json`
+      ).then(r => r.json());
 
-  // Compute date-based projections with USDA BQA grade-based age limits
-  const computeDateProjections = (dof) => {
-    const intake = intakeDate || lot?.purchase_date || '';
-    const ageEntry = parseInt(ageAtEntryDays) || null;
-    const usdaLimit = getUsdaLimit(lot?.cattle_class, focus);
+      if (!geo.results?.length) {
+        toast.error('Could not locate origin city. Try "City, State" format.');
+        return;
+      }
 
-    let expectedOutDate = null;
-    if (intake && dof) {
-      const d = new Date(intake);
-      d.setDate(d.getDate() + dof);
-      expectedOutDate = d.toISOString().split('T')[0];
+      const { latitude: oLat, longitude: oLon, name, admin1 } = geo.results[0];
+
+      // Haversine distance
+      const R = 3958.8; // miles
+      const dLat = (YARD_LAT - oLat) * Math.PI / 180;
+      const dLon = (YARD_LON - oLon) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(oLat * Math.PI / 180) * Math.cos(YARD_LAT * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+      const miles = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+
+      // Road-distance estimate: multiply straight-line by 1.25 factor
+      const roadMiles = Math.round(miles * 1.25);
+      const hours = (roadMiles / AVG_SPEED_MPH);
+      const shrink = estimateShrinkPct(roadMiles);
+
+      setTransitMiles(roadMiles);
+      setTransitHours(hours);
+      setTransitShrink(shrink);
+      toast.success(`Transit from ${name}, ${admin1}: ~${roadMiles} mi, ~${hours.toFixed(1)} hrs, est. ${shrink}% shrink`);
+    } catch (e) {
+      toast.error('Transit calculation failed. Enter shrink manually.');
+    } finally {
+      setGeocoding(false);
     }
-
-    let maxDofToLimit = null;
-    if (ageEntry !== null) {
-      maxDofToLimit = Math.max(0, usdaLimit.days - ageEntry);
-    }
-
-    return { expectedOutDate, maxDofToLimit, usdaLimit, intake };
   };
 
-  const buildPrompt = () => {
-    const lotInfo = lot ? `
-CATTLE LOT:
-- Class: ${lot.cattle_class}
-- Head Count: ${lot.head_count}
-- Current Weight: ${lot.current_weight || 'unknown'} lbs/hd
-- Purchase Weight: ${lot.purchase_weight} lbs/hd
-- Target Weight: ${targetWeight || lot.target_weight || 'not set'} lbs/hd
-- Stage: ${lot.stage}
-- Yard: ${lot.yard || 'unknown'}, Pen: ${lot.pen || 'unknown'}
-- Entity: ${lot.entity || 'unknown'}
-- Cost of Gain: $${lot.cog || 'unknown'}/lb
-- Yardage: $${lot.yardage || 0.45}/hd/day
-- Days on Feed Target: ${daysOnFeed || 'optimize for target weight'}
-` : 'No specific lot selected — generate general best-practice program.';
+  // Effective shrink to use in calcs (manual override wins)
+  const effectiveShrink = shrinkOverride
+    ? parseFloat(shrinkOverride)
+    : (transitShrink ?? 3.0);
 
-    const marketInfo = market ? `
-CURRENT MARKET CONDITIONS (${market.date}):
-- Live Cattle Futures: $${market.lc_futures}/cwt
-- Feeder Cattle Futures: $${market.gf_futures}/cwt
-- Choice Cutout: $${market.choice_cutout}/cwt
-- Select Cutout: $${market.select_cutout}/cwt
-- Prime Cutout: $${market.prime_cutout}/cwt
-- Corn Price: $${market.corn_price}/bu
-- Soybean Meal: $${market.sbm_price}/ton
-- 90s Trim: $${market.trim_90s}/lb
-- Import Volume: ${market.import_volume}, Export Volume: ${market.export_volume}
-` : 'No live market data available — use current industry averages.';
-
-    const feedInfo = feedProtocols.length > 0 ? `
-AVAILABLE FEED COMMODITIES:
-${feedProtocols.map(f => `- ${f.commodity_name}: $${f.cost_per_ton}/ton, TDN ${f.tdn_percent}%, CP ${f.cp_percent}%, ${f.daily_intake_head}lbs DMI/hd/day`).join('\n')}
-` : '';
-
-    const healthInfo = healthProtocols.length > 0 ? `
-EXISTING HEALTH PROTOCOLS ON RECORD:
-${healthProtocols.map(p => `- ${p.protocol_name} (${p.cattle_class}): ${p.action} at ${p.timing}, Product: ${p.product}, Dosage: ${p.dosage}, Cost: $${p.cost_per_head}/hd`).join('\n')}
-` : '';
-
-    const perfHistory = healthEvents.length > 0 ? `
-HEALTH EVENT HISTORY FOR THIS LOT:
-${healthEvents.slice(0, 20).map(e => `- ${e.event_date}: ${e.event_type}, ${e.head_affected} hd affected, ${e.diagnosis ? 'Dx: ' + e.diagnosis : ''} ${e.treatment ? 'Tx: ' + e.treatment : ''} ${e.cost_per_head ? '$' + e.cost_per_head + '/hd' : ''}`).join('\n')}
-` : '';
-
-    const weatherInfo = weather ? `
-LIVE WEATHER — ${YARD_ADDRESS} (fetched at plan generation):
-- Temperature: ${weather.temp_f}°F (feels like ${weather.feels_like_f}°F)
-- Humidity: ${weather.humidity}%
-- Wind: ${weather.wind_mph} mph, gusts to ${weather.wind_gust_mph} mph
-- Precipitation today: ${weather.precip_in}"
-- 7-Day Forecast: High ${weather.week_high}°F / Low ${weather.week_low}°F | Total rain: ${weather.week_precip}" | Max wind: ${weather.week_max_wind} mph
-- Weather adjustments needed: ${getWeatherAdjustments(weather)}
-` : `LOCATION: ${YARD_ADDRESS} — Shattuck, OK (Ellis County, Southern Great Plains). Semi-arid climate, hot summers (frequent 100°F+), cold winters, high wind prone, limited shade typical.\n`;
-
-    const envInfo = environment ? `\nENVIRONMENT / NOTES: ${environment}` : '';
-    const extra = additionalContext ? `\nADDITIONAL CONTEXT: ${additionalContext}` : '';
-
-    const usdaLimitForPrompt = getUsdaLimit(lot?.cattle_class, focus);
-    return `You are a world-class livestock nutritionist and cattle herd health veterinarian with deep expertise in beef production economics and USDA grading standards. 
-
-USDA BQA AGE LIMITS (USDA AMS / Packer Standards):
-- Select grade: Maximum 30 months (912 days) — most common for fed steers/heifers
-- Choice grade: Maximum 42 months (1,278 days)
-- Prime grade:  Maximum 42 months (1,278 days)
-- Commercial:   Over 42 months — NOT eligible for fed/hfr premium pricing
-- Target grade for this lot: ${usdaLimitForPrompt.grade} — must be marketed by ${usdaLimitForPrompt.months} months (${usdaLimitForPrompt.days} days) to qualify
-${ageAtEntryDays ? `- Current age at entry: ${ageAtEntryDays} days — maximum ${usdaLimitForPrompt.days - parseInt(ageAtEntryDays)} days remaining on feed to stay within ${usdaLimitForPrompt.grade} age limit` : ''}
-
-Generate a comprehensive, highly specific ${planType === 'full' ? 'FEED RATION AND VACCINATION SCHEDULE' : planType === 'ration' ? 'FEED RATION PROGRAM' : 'VACCINATION AND HEALTH SCHEDULE'} optimized for: ${FOCUS.find(f => f.value === focus)?.label.toUpperCase()}.
-
-${lotInfo}
-${marketInfo}
-${feedInfo}
-${healthInfo}
-${perfHistory}
-${weatherInfo}
-${envInfo}
-${extra}
-
-Produce your output in the following structured sections:
-
-${planType !== 'vaccination' ? `## 🌾 RATION PROGRAM
-
-Provide a phase-by-phase ration (starter/grower/finisher or whatever phases fit the cattle class and stage):
-- For each phase: days range, daily DMI (lbs), ingredient list with exact % and lbs/hd/day, TDN%, CP%, NEg, estimated ADG, estimated cost/hd/day
-- Specify any additives (ionophores, beta-agonists, implants, buffers, vitamins/minerals)
-- Include water requirements and bunk management tips
-- Justify how this ration maximizes ${FOCUS.find(f => f.value === focus)?.label} given current corn/SBM prices and cutout values
-- Flag any feed cost risk if futures move ±10%
-
-` : ''}${planType !== 'ration' ? `## 💉 VACCINATION & HEALTH PROTOCOL
-
-Provide a complete timeline from arrival/processing through market:
-- Day 0 (Processing): vaccines, implants, parasite control, ID
-- Day 14-21 boosters
-- Mid-feeding re-implant schedule
-- Pre-shipment health checks
-- BQA-compliant withdrawal times for all products
-- Specific product recommendations (e.g. Pyramid 5+Presponse HM, Dectomax, Ralgro, Optaflexx)
-- Estimated total health cost per head
-
-` : ''}## 📊 ECONOMIC PROJECTION
-
-- Estimated total cost of production per head (feed + health + yardage + death loss)
-- Projected sell weight and grade distribution (% Prime/Choice/Select)
-- Projected revenue at current futures/cutout
-- Estimated net profit per head and total lot profit
-- ROI %
-- Break-even sell price ($/cwt)
-- Key assumptions and risks
-
-## ⚡ AI RECOMMENDATIONS
-
-- Top 3 specific adjustments to make RIGHT NOW based on market conditions
-- Red flags or risks to watch
-- Optimal days-on-feed / target weight recommendation given current futures spread
-- Any lot-specific concerns based on health event history`;
-  };
-
-  const generateFallbackPlan = (w = weather) => {
-    const l = lot;
-    const mkt = market;
-    const buyWeight = l?.current_weight || l?.purchase_weight || 700;
-    const sellWeight = targetWeight ? Number(targetWeight) : (l?.target_weight || 1250);
-    const gainLbs = Math.max(sellWeight - buyWeight, 0);
-    const dof = daysOnFeed ? Number(daysOnFeed) : Math.round(gainLbs / 2.8);
-    const cog = l?.cog || 0.95;
-    const yardage = l?.yardage || 0.45;
-    const feedCost = gainLbs * cog;
+  // -------------------------------------------------------------------
+  // Central economics engine
+  // -------------------------------------------------------------------
+  const computeEconomics = () => {
+    const buyWt   = parseFloat(arrivalWt)    || lot?.current_weight || lot?.purchase_weight || 700;
+    const sellWt  = parseFloat(shippingWt)   || lot?.target_weight  || 1300;
+    const gainLbs = Math.max(sellWt - buyWt, 0);
+    const adgVal  = parseFloat(adg)          || 2.8;
+    const dof     = parseInt(daysOnFeed)     || (gainLbs > 0 ? Math.round(gainLbs / adgVal) : 180);
+    const ppCwt   = parseFloat(purchasePrice)|| lot?.purchase_price  || 150;
+    const ppPerHead = ppCwt / 100 * buyWt;
+    const cogVal  = parseFloat(cog)          || lot?.cog             || 0.90;
+    const feedCost    = gainLbs * cogVal;
+    const yardage     = lot?.yardage || 0.45;
     const yardageCost = yardage * dof;
-    const healthCostHd = healthProtocols.length > 0
+    const healthCost  = healthProtocols.length > 0
       ? healthProtocols.reduce((s, p) => s + (p.cost_per_head || 0), 0)
       : 55;
-    const purchasePriceCwt = getPurchasePriceCwt(buyWeight);
-    const buyPricePerHead = purchasePriceCwt / 100 * buyWeight;
-    const totalCostPerHead = buyPricePerHead + feedCost + yardageCost + healthCostHd + 35;
+    const truckIn  = parseFloat(truckingIn)  || 0;
+    const truckOut = parseFloat(truckingOut) || 0;
+    const rate     = (parseFloat(interestRate) / 100) || 0.08;
+    const interestCost = (ppPerHead + truckIn) * rate * (dof / 365);
+    const totalCost = ppPerHead + feedCost + yardageCost + healthCost + truckIn + truckOut + interestCost;
 
-    // Date / age projections with USDA BQA grade-based age limits
-    const { expectedOutDate, maxDofToLimit, usdaLimit } = computeDateProjections(dof);
-    const ageEntry = parseInt(ageAtEntryDays) || null;
-    const ageAtSale = ageEntry !== null ? ageEntry + dof : null;
-    const exceedsLimit = ageAtSale !== null && ageAtSale > usdaLimit.days;
+    const lc = market?.lc_futures || 185;
+    const fc = market?.gf_futures  || 245;
+    const shrink = effectiveShrink / 100;
+    const netSellWt = sellWt * (1 - shrink);
+    const grossRev  = netSellWt * (lc / 100);
+    const profitPerHead = grossRev - totalCost;
+    const roi = totalCost > 0 ? (profitPerHead / totalCost * 100) : 0;
+    const breakevenCwt = totalCost / netSellWt * 100;
 
-    // Breakeven at USDA age limit: project weight and cost at the grade's max age
-    let breakevenAtLimit = null;
-    let weightAtLimit = null;
-    if (ageEntry !== null) {
-      const dofToLimit = Math.max(0, usdaLimit.days - ageEntry);
-      const avgADG = gainLbs > 0 ? gainLbs / dof : 2.8;
-      weightAtLimit = Math.round(buyWeight + avgADG * dofToLimit);
-      const feedCostLimit = Math.max(0, (weightAtLimit - buyWeight)) * cog;
-      const yardageLimit = yardage * dofToLimit;
-      const totalCostLimit = buyPricePerHead + feedCostLimit + yardageLimit + healthCostHd + 35;
-      breakevenAtLimit = weightAtLimit > 0 ? parseFloat((totalCostLimit / weightAtLimit * 100).toFixed(2)) : null;
+    // USDA / age limit calcs
+    const usdaLimit = getUsdaLimit(lot?.cattle_class, focus);
+    const ageEntry  = parseInt(ageAtEntryDays) || null;
+    const intake    = intakeDate || lot?.purchase_date || '';
+    let expectedOutDate = null;
+    if (intake && dof) {
+      const d = new Date(intake); d.setDate(d.getDate() + dof);
+      expectedOutDate = d.toISOString().split('T')[0];
     }
-    const lc = mkt?.lc_futures || 241;
-    const corn = mkt?.corn_price || 4.22;
-    const revenuePerHead = sellWeight * (lc / 100);
-    const profitPerHead = revenuePerHead - totalCostPerHead;
-    const roi = totalCostPerHead > 0 ? (profitPerHead / totalCostPerHead * 100) : 0;
-    const isHolstein = l?.cattle_class?.includes('holstein');
+    let maxDofToLimit = null, breakevenAtLimit = null, weightAtLimit = null;
+    if (ageEntry !== null) {
+      maxDofToLimit = Math.max(0, usdaLimit.days - ageEntry);
+      weightAtLimit = Math.round(buyWt + adgVal * maxDofToLimit);
+      const feedLimit  = Math.max(0, (weightAtLimit - buyWt)) * cogVal;
+      const yardLimit  = yardage * maxDofToLimit;
+      const intLimit   = (ppPerHead + truckIn) * rate * (maxDofToLimit / 365);
+      const totalLimit = ppPerHead + feedLimit + yardLimit + healthCost + truckIn + truckOut + intLimit;
+      const netWtLimit = weightAtLimit * (1 - shrink);
+      breakevenAtLimit = netWtLimit > 0 ? parseFloat((totalLimit / netWtLimit * 100).toFixed(2)) : null;
+    }
+
+    const isHolstein  = lot?.cattle_class?.includes('holstein') || lot?.cattle_class?.includes('dairy');
     const targetGrade = isHolstein ? 'Select / Low Choice' : 'Choice / Prime';
-    const dmiLbs = Math.round(buyWeight * 0.025);
+    const corn        = market?.corn_price || 4.50;
+    const headCount   = lot?.head_count || null;
+
+    return {
+      buyWt, sellWt, gainLbs, dof, adgVal, cogVal, ppCwt, ppPerHead,
+      feedCost, yardageCost, healthCost, truckIn, truckOut, interestCost,
+      totalCost, lc, fc, shrink: effectiveShrink, netSellWt, grossRev,
+      profitPerHead, roi, breakevenCwt, usdaLimit, ageEntry,
+      expectedOutDate, maxDofToLimit, breakevenAtLimit, weightAtLimit,
+      targetGrade, isHolstein, headCount, corn, yardage,
+    };
+  };
+
+  // -------------------------------------------------------------------
+  // Build AI prompt
+  // -------------------------------------------------------------------
+  const buildPrompt = (econ) => {
+    const l   = lot;
+    const mkt = market;
+    const usdaLimit = getUsdaLimit(l?.cattle_class, focus);
+    const transitInfo = transitMiles
+      ? `Origin: ${originCity} → ${YARD_ADDRESS} | ~${transitMiles} mi road | ~${transitHours?.toFixed(1)} hrs @ ${AVG_SPEED_MPH} mph avg | Est. shrink: ${econ.shrink}%`
+      : originCity ? `Origin: ${originCity} (distance not yet calculated)` : 'Origin not specified';
+
+    return `You are a world-class livestock nutritionist and feedlot economist. Use EXACT economics inputs — do not override user-entered values.
+
+USDA BQA: Select ≤30 mo (912 days) | Choice/Prime ≤42 mo (1,278 days) | Target: ${usdaLimit.grade}${ageAtEntryDays ? ` | Age at entry: ${ageAtEntryDays} days — ${usdaLimit.days - parseInt(ageAtEntryDays)} days max DOF remaining` : ''}
+
+CATTLE LOT: ${l ? `${l.cattle_class} | ${l.head_count} hd | Stage: ${l.stage} | Yard: ${l.yard}, Pen: ${l.pen}` : 'No specific lot'}
+
+TRANSIT INFO (critical for arrival protocol & expected shrink):
+${transitInfo}
+- NOTE: Adjust arrival processing protocol based on transit stress — longer hauls require more aggressive receiving protocol (electrolytes, light roughage, BRD monitoring window extended)
+
+ECONOMICS INPUTS:
+- Arrival Wt: ${econ.buyWt} lbs/hd | Shipping Wt: ${econ.sellWt} lbs/hd | Gain: ${econ.gainLbs} lbs
+- Purchase Price: $${econ.ppCwt}/cwt ($${econ.ppPerHead.toFixed(0)}/hd)
+- ADG: ${econ.adgVal} lbs/day | COG: $${econ.cogVal}/lb | DOF: ${econ.dof} days
+- Interest: ${interestRate}%/yr | Trucking In: $${econ.truckIn}/hd | Trucking Out: $${econ.truckOut}/hd
+- Pencil Shrink at Sale: ${econ.shrink}%
+- Total Cost: $${econ.totalCost.toFixed(0)}/hd | Breakeven: $${econ.breakevenCwt.toFixed(2)}/cwt
+
+LIVE MARKET (${mkt?.date || 'latest'}):
+- LC Futures: $${econ.lc}/cwt (sell ref) | FC Futures: $${econ.fc}/cwt (buy ref)
+- Choice Cutout: $${mkt?.choice_cutout || '—'} | Select: $${mkt?.select_cutout || '—'} | Prime: $${mkt?.prime_cutout || '—'}
+- Corn: $${econ.corn}/bu | SBM: $${mkt?.sbm_price || '—'}/ton
+- Projected profit: $${econ.profitPerHead.toFixed(0)}/hd (${econ.roi.toFixed(1)}% ROI)
+
+WEATHER — ${YARD_ADDRESS}: ${weather ? `${weather.temp_f}°F (feels ${weather.feels_like_f}°F) | Wind ${weather.wind_mph} mph | ${getWeatherAdjustments(weather)}` : 'Southern Great Plains, semi-arid'}
+${feedProtocols.length > 0 ? `\nFEED COMMODITIES:\n${feedProtocols.map(f => `- ${f.commodity_name}: $${f.cost_per_ton}/ton, TDN ${f.tdn_percent}%, CP ${f.cp_percent}%, ${f.daily_intake_head} lbs/hd/day`).join('\n')}` : ''}
+${healthProtocols.length > 0 ? `\nHEALTH PROTOCOLS:\n${healthProtocols.map(p => `- ${p.protocol_name} (${p.cattle_class}): ${p.action} @ ${p.timing}, ${p.product}, ${p.dosage}, $${p.cost_per_head}/hd`).join('\n')}` : ''}
+${healthEvents.length > 0 ? `\nHEALTH HISTORY:\n${healthEvents.slice(0, 15).map(e => `- ${e.event_date}: ${e.event_type}, ${e.head_affected} hd, ${e.diagnosis || ''}`).join('\n')}` : ''}
+${additionalContext ? `\nNOTES: ${additionalContext}` : ''}
+
+Generate: ${planType === 'full' ? 'FEED RATION + VACCINATION' : planType === 'ration' ? 'FEED RATION' : 'VACCINATION SCHEDULE'} optimized for: ${FOCUS.find(f => f.value === focus)?.label.toUpperCase()}
+
+${planType !== 'vaccination' ? `## 🌾 RATION PROGRAM\n- Phase-by-phase: DMI, ingredients %, TDN%, CP%, ADG, cost/hd/day\n- Additives (ionophores, implants, buffers, minerals)\n- Arrival/receiving phase adjusted for transit distance (${transitMiles || '?'} mi)\n- Bunk management, water requirements\n` : ''}${planType !== 'ration' ? `## 💉 VACCINATION & HEALTH PROTOCOL\n- Arrival protocol adjusted for haul distance/stress level\n- Full BQA timeline: Day 0 through pre-ship\n- Specific products, dosages, withdrawal times\n- Estimated total health cost/hd\n` : ''}## 📊 ECONOMIC PROJECTION\nUse EXACT values: Buy $${econ.ppCwt}/cwt, COG $${econ.cogVal}/lb, DOF ${econ.dof}, LC $${econ.lc}/cwt, shrink ${econ.shrink}%\n- Full cost breakdown | Net profit/hd | Total lot (${lot?.head_count || '?'} hd) | ROI | Breakeven\n- Sensitivity: profit if LC ±$10/cwt\n\n## ⚡ AI RECOMMENDATIONS\n- Top 3 actions given LC $${econ.lc}/cwt vs BE $${econ.breakevenCwt.toFixed(2)}/cwt\n- Origin-specific health risks (transit stress, regional disease pressure from ${originCity || 'unknown origin'})\n- Optimal marketing window based on FC/LC spread`;
+  };
+
+  // -------------------------------------------------------------------
+  // Data-driven fallback plan
+  // -------------------------------------------------------------------
+  const generateFallbackPlan = (econ, w = weather) => {
+    const l = lot;
+    const mkt = market;
+    const {
+      buyWt, sellWt, gainLbs, dof, adgVal, cogVal, ppCwt, ppPerHead,
+      feedCost, yardageCost, healthCost, truckIn, truckOut, interestCost,
+      totalCost, lc, fc, shrink, netSellWt, grossRev, profitPerHead, roi,
+      breakevenCwt, usdaLimit, ageEntry, expectedOutDate, maxDofToLimit,
+      breakevenAtLimit, weightAtLimit, targetGrade, isHolstein, headCount, corn, yardage,
+    } = econ;
+
+    const ageAtSale    = ageEntry !== null ? ageEntry + dof : null;
+    const exceedsLimit = ageAtSale !== null && ageAtSale > usdaLimit.days;
+    const dmiLbs       = Math.round(buyWt * 0.025);
+
+    // Transit summary
+    const transitBlock = transitMiles
+      ? `TRANSIT: ${originCity} → ${YARD_ADDRESS}\n• Distance: ~${transitMiles} mi (road est.) | ETA: ~${transitHours?.toFixed(1)} hrs @ ${AVG_SPEED_MPH} mph avg\n• Estimated shrink at arrival: ${transitShrink}%${shrinkOverride ? ` (overridden to ${shrinkOverride}%)` : ''}\n• Stress level: ${transitMiles < 250 ? 'LOW (<250 mi)' : transitMiles < 600 ? 'MODERATE (250–600 mi)' : 'HIGH (>600 mi — extended receiving protocol required)'}`
+      : originCity
+        ? `ORIGIN: ${originCity} (distance not calculated — enter origin and click Calculate)`
+        : `ORIGIN: Not specified — using standard receiving protocol`;
 
     const feedList = feedProtocols.length > 0
-      ? feedProtocols.map(f => `• ${f.commodity_name}: $${f.cost_per_ton}/ton | TDN ${f.tdn_percent || '—'}% | CP ${f.cp_percent || '—'}% | ${f.daily_intake_head || '—'} lbs DMI/hd/day`).join('\n')
-      : `• Corn (dry-rolled): ~$${(corn * 8.5).toFixed(0)}/ton | TDN 88% | CP 9% | 12–15 lbs/hd/day
-• Alfalfa Hay: ~$220/ton | TDN 58% | CP 18% | 4–6 lbs/hd/day
-• Soybean Meal: ~$${mkt?.sbm_price || 340}/ton | TDN 82% | CP 47% | 1–2 lbs/hd/day
-• Distillers Grains: ~$150/ton | TDN 85% | CP 28% | 5–8 lbs/hd/day
-• Mineral/Vitamin mix: ~$600/ton | 0.25 lbs/hd/day`;
+      ? feedProtocols.map(f => `• ${f.commodity_name}: $${f.cost_per_ton}/ton | TDN ${f.tdn_percent || '—'}% | CP ${f.cp_percent || '—'}% | ${f.daily_intake_head || '—'} lbs/hd/day`).join('\n')
+      : `• Corn (dry-rolled): ~$${(corn * 8.5).toFixed(0)}/ton | TDN 88% | CP 9%\n• Alfalfa Hay: ~$220/ton | TDN 58% | CP 18%\n• Soybean Meal: ~$${mkt?.sbm_price || 340}/ton | TDN 82% | CP 47%\n• Distillers Grains: ~$150/ton | TDN 85% | CP 28%\n• Mineral/Vitamin mix: ~$600/ton`;
 
     const healthList = healthProtocols.length > 0
-      ? healthProtocols.map(p => `• ${p.protocol_name} | ${p.cattle_class} | ${p.action} at ${p.timing}${p.product ? ' | Product: ' + p.product : ''}${p.dosage ? ' | ' + p.dosage : ''}${p.cost_per_head ? ' | $' + p.cost_per_head + '/hd' : ''}`).join('\n')
-      : `• Day 0 Processing: IBR-BVD-PI3-BRSV + Mannheimia (Pyramid 5+Presponse HM), 5-way clostridial
-• Day 0: Ivermectin pour-on, Implant (Ralgro or Component E-H)
-• Day 14–21: Booster vaccines (IBR-BVD)
-• Day 60–90: Re-implant (Component T-H or Optaflexx depending on class)
-• Pre-ship: BQA-compliant health check, confirm withdrawal times
-• Est. health cost: $45–$65/hd`;
+      ? healthProtocols.map(p => `• ${p.protocol_name} | ${p.cattle_class} | ${p.action} @ ${p.timing}${p.product ? ' | ' + p.product : ''}${p.cost_per_head ? ' | $' + p.cost_per_head + '/hd' : ''}`).join('\n')
+      : `• Day 0: Pyramid 5+Presponse HM, 7-way Clostridial, Dectomax, Implant\n• Day 14–21: IBR-BVD boosters\n• Day 60–90: Re-implant\n• Pre-ship: Health check, withdrawal compliance\n• Est. health cost: $45–$65/hd`;
 
-    const weatherSummary = w ? `
-CURRENT CONDITIONS — ${YARD_ADDRESS}:
-• Temperature: ${w.temp_f}°F (feels like ${w.feels_like_f}°F) | Humidity: ${w.humidity}%
-• Wind: ${w.wind_mph} mph (gusts to ${w.wind_gust_mph} mph) | Precip today: ${w.precip_in}"
-• 7-Day Forecast: High ${w.week_high}°F / Low ${w.week_low}°F | Rain: ${w.week_precip}" | Max Wind: ${w.week_max_wind} mph
+    const weatherNote = w
+      ? `WEATHER: ${w.temp_f}°F (feels ${w.feels_like_f}°F) | Wind ${w.wind_mph} mph | 7-day: ${w.week_low}–${w.week_high}°F\n${getWeatherAdjustments(w)}`
+      : `LOCATION: ${YARD_ADDRESS} (Southern Plains)`;
 
-WEATHER-BASED ADJUSTMENTS:
-${getWeatherAdjustments(w)}
-` : `LOCATION: ${YARD_ADDRESS} (Shattuck, OK — Southern Plains, semi-arid, hot summers, cold winters)\n`;
+    // Receiving phase length varies by transit stress
+    const receivingDays = transitMiles > 600 ? 28 : transitMiles > 250 ? 21 : 14;
 
     const rationProgram = `DATA-DRIVEN RATION PLAN
-${l ? `Lot: ${l.lot_id || l.cattle_class} | ${l.head_count} hd | ${buyWeight} lbs → ${sellWeight} lbs | Stage: ${l.stage}` : 'General program — no specific lot selected'}
-${weatherSummary}
-AVAILABLE FEED COMMODITIES ON RECORD:
+${l ? `Lot: ${l.lot_id || l.cattle_class} | ${headCount} hd | ${buyWt} lbs → ${sellWt} lbs | ADG ${adgVal} lbs/day | ${dof} DOF` : 'General program'}
+
+${transitBlock}
+${weatherNote}
+
+FEED COMMODITIES ON RECORD:
 ${feedList}
 
-PHASE 1 — RECEIVING / STARTER (Days 1–21)
+PHASE 1 — RECEIVING / STARTER (Days 1–${receivingDays})
 DMI: ${Math.round(dmiLbs * 0.75)} lbs/hd/day | TDN: 68–72% | CP: 14–16%
-• High roughage (35–40%), low-starch adaptation
-• Focus: stress recovery, rumen adaptation
-• Administer receiving medications per health protocol
-• Estimated ADG: 1.5–2.0 lbs/hd/day
-• Est. feed cost: $${(0.75 * dmiLbs * (corn / 56 * 8.5 / 2000 + 0.10)).toFixed(2)}/hd/day
+• ${transitMiles > 600 ? 'EXTENDED receiving — high-stress long haul. Electrolytes day 1–3, light hay only days 1–3, gradual concentrate introduction.' : transitMiles > 250 ? 'Standard receiving — moderate transit stress. Hay/roughage emphasis first week.' : 'Short haul — normal receiving. Begin concentrate adaptation sooner.'}
+• Focus: stress recovery, rumen adaptation | ADG est: 1.5–2.0 lbs/day
 
-PHASE 2 — GROWER / GROWING (Days 22–${Math.round(dof * 0.55)})
+PHASE 2 — GROWER (Days ${receivingDays + 1}–${Math.round(dof * 0.55)})
 DMI: ${dmiLbs} lbs/hd/day | TDN: 75–78% | CP: 12–13%
-• Mid-grain ration, reduce hay, add distillers
-• Target ADG: 2.8–3.2 lbs/hd/day
-• Ionophore (Rumensin or Bovatec) added
-• Est. feed cost: $${(dmiLbs * 0.085).toFixed(2)}/hd/day
+• Mid-grain, add distillers, Rumensin/Bovatec | ADG est: ${adgVal} lbs/day
 
-PHASE 3 — FINISHER (Days ${Math.round(dof * 0.55)}–${dof})
+PHASE 3 — FINISHER (Days ${Math.round(dof * 0.55) + 1}–${dof})
 DMI: ${Math.round(dmiLbs * 1.1)} lbs/hd/day | TDN: 82–86% | CP: 11–12%
-• High-grain (85–90% concentrate), min roughage (1–1.5% BW)
-• Beta-agonist consideration at Day ${dof - 28} (if ${isHolstein ? 'not going export market' : 'grid allows'})
-• Target ADG: 3.5–4.0 lbs/hd/day
-• Est. feed cost: $${(dmiLbs * 1.1 * 0.092).toFixed(2)}/hd/day
+• High-grain (85–90%), min roughage 1–1.5% BW | ADG est: ${(adgVal * 1.1).toFixed(1)} lbs/day
+• Beta-agonist consideration at Day ${dof - 28} if grid allows
 
-BUNK MANAGEMENT:
-• Slick bunk management — empty 0–1x/day at finishing
-• Check water: minimum 2 gal/lb DMI (${Math.round(dmiLbs * 2)} gal/hd/day at peak)
-• Watch for bloat and acidosis indicators, especially in high-grain phase
-
-TOTAL FEED COST ESTIMATE: $${feedCost.toFixed(0)}/hd over ${dof} days ($${(feedCost/dof).toFixed(2)}/hd/day avg)`;
+TOTAL FEED COST: $${feedCost.toFixed(0)}/hd over ${dof} days @ $${cogVal}/lb COG ($${(feedCost / dof).toFixed(2)}/hd/day avg)`;
 
     const vaccinationSchedule = `DATA-DRIVEN HEALTH PROTOCOL
-${l ? `Lot: ${l.lot_id || l.cattle_class} | Cattle Class: ${l.cattle_class}` : 'General BQA-compliant program'}
+${l ? `${l.lot_id || l.cattle_class} | ${l.cattle_class}` : 'General BQA program'}
+
+${transitBlock}
+
+TRANSIT STRESS PROTOCOL ADJUSTMENT:
+${transitMiles > 600
+  ? '⚠ HIGH STRESS HAUL (>600 mi): Extended monitoring window. Expect elevated BRD risk 7–21 days post-arrival. Watch for chronic respiratories at 30 days. Consider metaphylaxis on arrival for high-risk cattle.'
+  : transitMiles > 250
+    ? '⚠ MODERATE HAUL (250–600 mi): Standard BRD protocol, enhanced monitoring week 1–2.'
+    : transitMiles
+      ? '✓ SHORT HAUL (<250 mi): Low transit stress. Standard receiving protocol applies.'
+      : 'Origin not specified — apply moderate protocol as default.'}
 
 PROTOCOLS ON RECORD:
 ${healthList}
 
-STANDARD BQA TIMELINE (if no specific protocols configured):
-• Day 0 — PROCESSING: Weigh, tag, castrate/implant, dehorn if needed
-  - Respiratory 5-way (IBR, BVD1&2, PI3, BRSV)
-  - 7-way Clostridial (Blackleg, Malignant Edema, etc.)
-  - Parasite control (Dectomax or Ivomec)
-  - Implant: Ralgro or Component E-H (stocker), Synovex S (feedlot)
-  - BQA injection sites: Neck triangle only
-• Day 14–21 — BOOSTERS: IBR-BVD, Haemophilus
-• Day 60–90 — RE-IMPLANT: Component T-H or Revalor-G
-• Day ${dof - 28} — TERMINAL IMPLANT (if applicable): Optaflexx 45, check withdrawal 28 days pre-slaughter
-• Pre-Ship — Health inspection, check withdrawal compliance
+BQA STANDARD TIMELINE:
+• Day 0: Weigh, tag, process | Vaccines, dewormer, implant | Neck-triangle only
+${transitMiles > 600 ? '• Day 0–3: Electrolytes in water, hay only, monitor closely\n• Day 3–7: Begin concentrate introduction slowly' : ''}
+• Day 14–21: Boosters | Day 60–90: Re-implant
+• Day ${dof - 28}: Terminal implant — confirm 28-day withdrawal
+• Pre-ship: Health inspection, compliance check
 
-ESTIMATED TOTAL HEALTH COST: $${healthCostHd.toFixed(0)}/hd`;
+HEALTH COST: $${healthCost.toFixed(0)}/hd`;
 
-    const econProjection = `ECONOMIC PROJECTION (DATA-DRIVEN)
-${l ? `Lot: ${l.lot_id || l.cattle_class} | Focus: ${FOCUS.find(f => f.value === focus)?.label}` : 'General estimate'}
+    const econProjection = `ECONOMIC PROJECTION
+${l ? `${l.lot_id || l.cattle_class} | ${headCount} hd | Focus: ${FOCUS.find(f => f.value === focus)?.label}` : 'General estimate'}
 
-PURCHASE DETAILS:
-• Intake date:           ${intakeDate || l?.purchase_date || 'Not set'}
-• Buy weight:            ${buyWeight} lbs/hd
-• Purchase price:        $${purchasePriceCwt.toFixed(2)}/cwt ($${buyPricePerHead.toFixed(0)}/hd)
-${ageEntry !== null ? `• Age at entry:          ${ageEntry} days old` : ''}
+INPUTS:
+• Intake date:        ${intakeDate || l?.purchase_date || 'Not set'}
+• Arrival weight:     ${buyWt} lbs/hd
+• Shipping weight:    ${sellWt} lbs/hd  (${gainLbs} lbs gain)
+• Purchase price:     $${ppCwt}/cwt  ($${ppPerHead.toFixed(0)}/hd)
+• ADG:                ${adgVal} lbs/hd/day
+• COG:                $${cogVal}/lb
+• Days on feed:       ${dof} days
+• Interest rate:      ${interestRate}%/yr
+• Trucking in:        $${truckIn}/hd | Trucking out: $${truckOut}/hd
+• Pencil shrink:      ${shrink}%
+${transitMiles ? `• Origin:             ${originCity} → ~${transitMiles} mi → ~${transitHours?.toFixed(1)} hrs transit` : ''}
 
 COST BREAKDOWN:
-• Purchase cost:         $${buyPricePerHead.toFixed(0)}/hd
-• Feed cost:             $${feedCost.toFixed(0)}/hd  (${gainLbs} lb gain @ $${cog}/lb COG)
-• Yardage:               $${yardageCost.toFixed(0)}/hd  ($${yardage}/hd/day × ${dof} days)
-• Health/meds:           $${healthCostHd.toFixed(0)}/hd
-• Freight/misc:          $35/hd (est.)
-─────────────────────────────────────────
-TOTAL COST:              $${totalCostPerHead.toFixed(0)}/hd
+• Purchase:           $${ppPerHead.toFixed(0)}/hd
+• Feed cost:          $${feedCost.toFixed(0)}/hd  (${gainLbs} lbs × $${cogVal}/lb)
+• Yardage:            $${yardageCost.toFixed(0)}/hd  ($${yardage}/hd/day × ${dof} days)
+• Health/meds:        $${healthCost.toFixed(0)}/hd
+• Trucking in:        $${truckIn.toFixed(0)}/hd
+• Trucking out:       $${truckOut.toFixed(0)}/hd
+• Interest:           $${interestCost.toFixed(0)}/hd  (${interestRate}% × ${dof} days)
+──────────────────────────────────────
+TOTAL COST:           $${totalCost.toFixed(0)}/hd
+
+MARKET (LC/FC):
+• LC Futures:         $${lc}/cwt  (sell reference)
+• FC Futures:         $${fc}/cwt  (buy reference) | Basis: $${(fc - lc).toFixed(2)}/cwt
+• Net sell weight:    ${netSellWt.toFixed(0)} lbs/hd  (after ${shrink}% shrink)
+• Gross revenue:      $${grossRev.toFixed(0)}/hd
+${headCount ? `• Total lot revenue:  $${(grossRev * headCount).toFixed(0)}  (${headCount} hd)` : ''}
 
 TIMELINE:
-• Days on feed:          ${dof} days
-• Expected out date:     ${expectedOutDate || 'N/A (set intake date)'}
-${ageAtSale !== null ? `• Projected age at sale: ${ageAtSale} days (${(ageAtSale / 30.4).toFixed(1)} mo)${exceedsLimit ? ` ⚠ EXCEEDS USDA ${usdaLimit.grade.toUpperCase()} LIMIT (${usdaLimit.months} mo / ${usdaLimit.days} days)` : ` ✓ Within USDA ${usdaLimit.grade} limit (${usdaLimit.months} mo)`}` : ''}
-${maxDofToLimit !== null ? `• Max DOF within ${usdaLimit.label}: ${maxDofToLimit} days remaining` : ''}
+• Days on feed:       ${dof} days
+• Expected out date:  ${expectedOutDate || 'N/A — set intake date'}
+${ageAtSale !== null ? `• Age at sale:        ${ageAtSale} days (${(ageAtSale / 30.4).toFixed(1)} mo)${exceedsLimit ? ` ⚠ EXCEEDS USDA ${usdaLimit.grade} limit (${usdaLimit.months} mo)` : ` ✓ Within ${usdaLimit.grade} limit`}` : ''}
+${maxDofToLimit !== null ? `• Max DOF to ${usdaLimit.label}: ${maxDofToLimit} days remaining` : ''}
 
-${breakevenAtLimit !== null ? `USDA BQA AGE-LIMIT BREAKEVEN — ${usdaLimit.label.toUpperCase()}:
-• Max age limit:         ${usdaLimit.months} months (${usdaLimit.days} days) per USDA AMS / BQA packer standards
-• Weight at age limit:   ${weightAtLimit} lbs/hd (est.)
-• Breakeven price:       $${breakevenAtLimit}/cwt to recover all costs by age limit
-• Current LC futures:    $${lc}/cwt — ${lc >= breakevenAtLimit ? '✓ ABOVE breakeven — profitable at limit' : '⚠ BELOW breakeven — $' + (breakevenAtLimit - lc).toFixed(2) + '/cwt deficit at limit'}
-${l?.head_count ? `• Lot breakeven total:   $${(breakevenAtLimit / 100 * weightAtLimit * l.head_count).toFixed(0)} revenue needed for ${l.head_count} hd` : ''}
-• NOTE: ${usdaLimit.grade === 'Select' ? 'Select grade cattle must be marketed by 30 months (912 days) per USDA AMS standards' : 'Prime/Choice cattle must be marketed by 42 months (1,278 days) — older animals grade Commercial and lose fed/hfr premium'}
-─────────────────────────────────────────
+${breakevenAtLimit !== null ? `USDA BQA BREAKEVEN (${usdaLimit.grade} — ${usdaLimit.months} mo):
+• Weight at limit:    ${weightAtLimit} lbs/hd
+• Breakeven:          $${breakevenAtLimit}/cwt  (LC $${lc} ${lc >= breakevenAtLimit ? '✓ covers costs' : '⚠ short by $' + (breakevenAtLimit - lc).toFixed(2)})
+──────────────────────────────────────
 ` : ''}
-REVENUE PROJECTION:
-• Sell weight:           ${sellWeight} lbs/hd
-• LC Futures:            $${lc}/cwt ${mkt?.date ? '(' + mkt.date + ')' : ''}
-• Gross revenue:         $${revenuePerHead.toFixed(0)}/hd
-• Pencil shrink (3%):    -$${(revenuePerHead * 0.03).toFixed(0)}/hd
-• Net revenue:           $${(revenuePerHead * 0.97).toFixed(0)}/hd
+NET PROFIT:           $${profitPerHead.toFixed(0)}/hd  ${profitPerHead >= 0 ? '✓' : '⚠ LOSS'}
+ROI:                  ${roi.toFixed(1)}%
+BREAKEVEN SELL:       $${breakevenCwt.toFixed(2)}/cwt  (vs LC $${lc} — ${lc >= breakevenCwt ? '✓ $' + (lc - breakevenCwt).toFixed(2) + ' margin' : '⚠ $' + (breakevenCwt - lc).toFixed(2) + ' short'})
+${headCount ? `TOTAL LOT PROFIT:     $${(profitPerHead * headCount).toFixed(0)}` : ''}
 
-NET PROFIT:              $${((revenuePerHead * 0.97) - totalCostPerHead).toFixed(0)}/hd
-ROI:                     ${roi.toFixed(1)}%
-BREAKEVEN:               $${(totalCostPerHead / sellWeight * 100).toFixed(2)}/cwt
-${l?.head_count ? `TOTAL LOT PROFIT:        $${((revenuePerHead * 0.97 - totalCostPerHead) * l.head_count).toFixed(0)}` : ''}
-
-EXPECTED GRADE: ${targetGrade}
-CURRENT MARKET SIGNAL: ${lc > 240 ? '✓ STRONG — premium sell window' : lc > 225 ? '▲ MODERATE — watch basis' : '⚠ WEAK — consider timing'}
-${mkt?.choice_cutout ? `Cutout Spread: $${(mkt.choice_cutout - lc).toFixed(2)}/cwt (${mkt.choice_cutout - lc > 80 ? 'WIDE — packers bidding up' : mkt.choice_cutout - lc > 50 ? 'NORMAL' : 'NARROW — packer margin tight'})` : ''}`;
+GRADE TARGET: ${targetGrade}
+SENSITIVITY:
+• LC +$10 → $${(profitPerHead + netSellWt * 0.10).toFixed(0)}/hd
+• LC -$10 → $${(profitPerHead - netSellWt * 0.10).toFixed(0)}/hd`;
 
     const recommendations = `DATA-DRIVEN RECOMMENDATIONS
-Focus: ${FOCUS.find(f => f.value === focus)?.label || 'Balanced'}
-Location: ${YARD_ADDRESS}
-${w ? `Current Weather: ${w.temp_f}°F | Wind ${w.wind_mph} mph | Humidity ${w.humidity}% | 7-Day High: ${w.week_high}°F` : ''}
+Focus: ${FOCUS.find(f => f.value === focus)?.label}
+${w ? `Weather: ${w.temp_f}°F | Wind ${w.wind_mph} mph | 7-Day High: ${w.week_high}°F` : ''}
 
-WEATHER MANAGEMENT PRIORITIES:
+TRANSIT / ORIGIN ANALYSIS:
+${transitMiles
+  ? `• ${originCity} → Shattuck, OK | ${transitMiles} mi | ~${transitHours?.toFixed(1)} hrs\n• Arrival shrink: ${shrink}%\n• Stress level: ${transitMiles > 600 ? '⚠ HIGH — implement extended receiving protocol and BRD metaphylaxis consideration' : transitMiles > 250 ? '⚠ MODERATE — standard BRD protocol, enhanced monitoring week 1' : '✓ LOW — normal receiving protocol'}`
+  : originCity
+    ? `• Origin: ${originCity} (calculate distance above for shrink & protocol recommendations)`
+    : '• No origin entered — standard receiving protocol applied'}
+
+MARKET:
+• LC $${lc}/cwt vs BE $${breakevenCwt.toFixed(2)}/cwt — ${lc >= breakevenCwt ? `✓ $${(lc - breakevenCwt).toFixed(2)}/cwt margin` : `⚠ $${(breakevenCwt - lc).toFixed(2)}/cwt deficit`}
+• FC/LC Basis: $${(fc - lc).toFixed(2)}/cwt | COG $${cogVal}/lb
+
+WEATHER:
 ${getWeatherAdjustments(w)}
 
-TOP PRIORITIES RIGHT NOW:
-${lc > 240 ? '1. ✓ SELL WINDOW OPEN — LC futures strong at $' + lc + '/cwt. Prioritize finishing and marketing ready cattle.' : '1. ⚠ Market below $240 — weigh holding cost vs. current price before committing to sell date.'}
-${corn < 4.50 ? '2. ✓ Corn favorable at $' + corn + '/bu — high-grain finishing ration is cost-effective. Consider locking in feed prices.' : '2. ⚠ Corn elevated at $' + corn + '/bu — evaluate alternative energy sources (distillers, DDG, beet pulp) to protect COG.'}
-${mkt?.sbm_price && mkt.sbm_price > 350 ? '3. ⚠ SBM expensive at $' + mkt.sbm_price + '/ton — reduce protein via cheap amino acid sources (urea, DDG) where possible.' : '3. ✓ SBM manageable — maintain protein levels per protocol.'}
-${gainLbs > 400 ? '4. Plan re-implant at Day ' + Math.round(dof * 0.55) + ' to maximize ADG in finishing phase.' : '4. Monitor bunk daily — adjust delivery to prevent acidosis as cattle approach finishing weights.'}
-5. Track morbidity closely — pull rate >10% signals health protocol review needed.
-${healthEvents.length > 0 ? '6. ⚠ ' + healthEvents.length + ' health events logged — review patterns for recurring diagnosis and adjust treatment protocol.' : '6. ✓ No major health events on record for this lot.'}
+TOP ACTIONS:
+${lc >= breakevenCwt ? `1. ✓ Profitable at $${profitPerHead.toFixed(0)}/hd — finalize sell date targeting ${sellWt} lbs` : `1. ⚠ Below breakeven — reduce COG or wait for LC recovery`}
+2. ${adgVal < 3.0 ? `⚠ ADG ${adgVal} — review implant/ration energy` : `✓ ADG ${adgVal} on target`}
+3. ${interestCost > 50 ? `⚠ Interest $${interestCost.toFixed(0)}/hd — capital at risk, stay on DOF timeline` : `✓ Interest manageable at $${interestCost.toFixed(0)}/hd`}
+${healthEvents.length > 0 ? `4. ⚠ ${healthEvents.length} health events on record — review protocol` : '4. ✓ No health flags for this lot'}
 
-OPTIMAL MARKETING TARGET:
-• ${sellWeight} lbs/hd live — ${dof} days on feed
-• Grade target: ${targetGrade}
-• Watch for: ${mkt?.import_volume === 'high' ? '⚠ High import volume — trim/lean prices pressured' : mkt?.export_volume === 'high' ? '✓ Strong export demand — premium cattle in demand' : 'Normal trade conditions'}
-
-NOTE: This is a data-driven analysis generated from your actual lot, market, and protocol data. For AI-generated personalized recommendations, integration credits are required.`;
+NOTE: Data-driven analysis. AI upgrade requires integration credits.`;
 
     return {
       ration_program: rationProgram,
       vaccination_schedule: vaccinationSchedule,
       economic_projection: econProjection,
       ai_recommendations: recommendations,
-      summary: `${l ? `Lot ${l.lot_id || l.cattle_class} (${l.head_count} hd)` : 'General program'}: Estimated ${roi.toFixed(1)}% ROI with $${profitPerHead.toFixed(0)}/hd projected profit over ${dof} days on feed. Total cost: $${totalCostPerHead.toFixed(0)}/hd. Buy: $${purchasePriceCwt.toFixed(2)}/cwt. Sell target: ${sellWeight} lbs @ $${lc}/cwt.${expectedOutDate ? ' Est. out: ' + expectedOutDate + '.' : ''}${breakevenAtLimit !== null ? ` USDA ${usdaLimit.grade} BE: $${breakevenAtLimit}/cwt at ${usdaLimit.months}-mo limit.` : ''} Grade target: ${targetGrade}.`,
-      estimated_profit_per_head: Math.round((revenuePerHead * 0.97) - totalCostPerHead),
+      summary: `${l ? `${l.lot_id || l.cattle_class} (${headCount} hd)` : 'General'}: $${profitPerHead.toFixed(0)}/hd profit | ${roi.toFixed(1)}% ROI | ${dof} DOF | Buy $${ppCwt}/cwt → Sell ${sellWt} lbs @ LC $${lc}/cwt | BE $${breakevenCwt.toFixed(2)}/cwt${transitMiles ? ` | Origin: ${originCity} ~${transitMiles} mi` : ''}.`,
+      estimated_profit_per_head: Math.round(profitPerHead),
       estimated_roi_percent: parseFloat(roi.toFixed(1)),
-      estimated_cost_per_head: Math.round(totalCostPerHead),
+      estimated_cost_per_head: Math.round(totalCost),
       target_grade: targetGrade,
-      // Date / age fields passed back for saving
       _expectedOutDate: expectedOutDate,
       _maxDofToLimit: maxDofToLimit,
       _usdaLimit: usdaLimit,
@@ -495,25 +500,27 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
     };
   };
 
+  // -------------------------------------------------------------------
+  // Save / Load
+  // -------------------------------------------------------------------
   const savePlan = async (planData, isAi = false, version = 1) => {
     const l = lots.find(lo => lo.id === selectedLot);
-
     const record = {
       lot_id: selectedLot || '',
       lot_label: l ? `${l.lot_id || l.cattle_class} — ${l.head_count} hd @ ${l.current_weight || l.purchase_weight} lbs` : 'General Program',
       plan_type: planType,
       focus,
       intake_date: intakeDate || l?.purchase_date || undefined,
-      purchase_price_per_unit: purchasePricePerUnit ? Number(purchasePricePerUnit) : undefined,
-      purchase_price_unit: purchasePriceUnit,
+      purchase_price_per_unit: purchasePrice ? Number(purchasePrice) : undefined,
+      purchase_price_unit: 'cwt',
       days_on_feed: daysOnFeed ? Number(daysOnFeed) : undefined,
-      target_weight: targetWeight ? Number(targetWeight) : undefined,
+      target_weight: shippingWt ? Number(shippingWt) : undefined,
       expected_out_date: planData._expectedOutDate || undefined,
       age_at_entry_days: planData._ageAtEntry != null ? planData._ageAtEntry : undefined,
       max_dof_to_426: planData._maxDofToLimit != null ? planData._maxDofToLimit : undefined,
       breakeven_at_426_days: planData._breakevenAtLimit != null ? planData._breakevenAtLimit : undefined,
       breakeven_weight_at_426: planData._weightAtLimit != null ? planData._weightAtLimit : undefined,
-      environment,
+      environment: originCity ? `Origin: ${originCity}` : '',
       additional_context: additionalContext,
       ration_program: planData.ration_program || '',
       vaccination_schedule: planData.vaccination_schedule || '',
@@ -528,7 +535,6 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
       version,
       generated_by: user?.email || '',
     };
-
     const saved = await base44.entities.SavedFeedPlan.create(record);
     queryClient.invalidateQueries({ queryKey: ['savedFeedPlans'] });
     return saved.id;
@@ -539,12 +545,10 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
     setPlanType(saved.plan_type || 'full');
     setFocus(saved.focus || 'balanced');
     setIntakeDate(saved.intake_date || '');
-    setPurchasePricePerUnit(saved.purchase_price_per_unit ? String(saved.purchase_price_per_unit) : '');
-    setPurchasePriceUnit(saved.purchase_price_unit || 'cwt');
+    setPurchasePrice(saved.purchase_price_per_unit ? String(saved.purchase_price_per_unit) : '');
     setAgeAtEntryDays(saved.age_at_entry_days ? String(saved.age_at_entry_days) : '');
     setDaysOnFeed(saved.days_on_feed ? String(saved.days_on_feed) : '');
-    setTargetWeight(saved.target_weight ? String(saved.target_weight) : '');
-    setEnvironment(saved.environment || '');
+    setShippingWt(saved.target_weight ? String(saved.target_weight) : '');
     setAdditionalContext(saved.additional_context || '');
     setPlan({
       ration_program: saved.ration_program,
@@ -563,70 +567,53 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
     toast.success(`Loaded: ${saved.lot_label} v${saved.version}`);
   };
 
+  // -------------------------------------------------------------------
+  // Weather
+  // -------------------------------------------------------------------
   const fetchWeather = async () => {
     setWeatherLoading(true);
     try {
-      // Open-Meteo free API — no key required
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${YARD_LAT}&longitude=${YARD_LON}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m,wind_gusts_10m,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&forecast_days=7&timezone=America%2FChicago`;
-      const res = await fetch(url);
-      const data = await res.json();
-      const c = data.current;
-      const d = data.daily;
-      const weatherObj = {
-        temp_f: c.temperature_2m,
-        feels_like_f: c.apparent_temperature,
-        humidity: c.relative_humidity_2m,
-        wind_mph: c.wind_speed_10m,
-        wind_gust_mph: c.wind_gusts_10m,
-        precip_in: c.precipitation,
-        weather_code: c.weather_code,
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${YARD_LAT}&longitude=${YARD_LON}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m,wind_gusts_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch&forecast_days=7&timezone=America%2FChicago`;
+      const data = await fetch(url).then(r => r.json());
+      const c = data.current, d = data.daily;
+      const w = {
+        temp_f: c.temperature_2m, feels_like_f: c.apparent_temperature,
+        humidity: c.relative_humidity_2m, wind_mph: c.wind_speed_10m,
+        wind_gust_mph: c.wind_gusts_10m, precip_in: c.precipitation,
         week_high: Math.max(...(d.temperature_2m_max || [])),
-        week_low: Math.min(...(d.temperature_2m_min || [])),
+        week_low:  Math.min(...(d.temperature_2m_min || [])),
         week_precip: (d.precipitation_sum || []).reduce((a, b) => a + b, 0).toFixed(2),
         week_max_wind: Math.max(...(d.wind_speed_10m_max || [])),
       };
-      setWeather(weatherObj);
-      return weatherObj;
-    } catch (e) {
-      console.error('Weather fetch failed', e);
-      return null;
-    } finally {
-      setWeatherLoading(false);
-    }
+      setWeather(w);
+      return w;
+    } catch { return null; }
+    finally { setWeatherLoading(false); }
   };
 
   const getWeatherAdjustments = (w) => {
-    if (!w) return '';
-    const heatStress = w.temp_f > 90;
-    const severeHeat = w.temp_f > 100;
-    const coldStress = w.temp_f < 32;
-    const highWind = w.wind_mph > 25 || w.wind_gust_mph > 40;
-    const wetConditions = w.precip_in > 0.25 || parseFloat(w.week_precip) > 1.5;
-
-    const adjustments = [];
-    if (severeHeat) adjustments.push('⚠ SEVERE HEAT ALERT: Reduce feeding to cooler hours (evening/night), increase electrolytes, ensure shade and water access — reduce energy density 5–8% to prevent acidosis risk');
-    else if (heatStress) adjustments.push('⚠ HEAT STRESS: Shift feed delivery to early morning and evening, increase water availability, add potassium bicarbonate buffer, monitor bunk management closely');
-    if (coldStress) adjustments.push('❄ COLD CONDITIONS: Increase energy density 8–12%, add additional fat/corn, monitor water heaters to prevent freezing');
-    if (highWind) adjustments.push(`⚠ HIGH WINDS (${w.wind_mph} mph, gusts ${w.wind_gust_mph} mph): Secure feed storage, monitor wind-chill impact on younger cattle, check pen windbreaks`);
-    if (wetConditions) adjustments.push(`🌧 WET CONDITIONS: Watch for mud-related lameness and reduced DMI, raise feed racks/bunks above mud line, consider foot rot prevention protocol`);
-    if (!heatStress && !coldStress && !highWind && !wetConditions) adjustments.push('✓ Favorable conditions — standard ration and bunk management protocols apply');
-
-    return adjustments.join('\n');
+    if (!w) return 'No weather data';
+    const adj = [];
+    if (w.temp_f > 100)      adj.push('⚠ SEVERE HEAT: Feed at night, electrolytes, reduce energy density 5–8%');
+    else if (w.temp_f > 90)  adj.push('⚠ HEAT STRESS: Early morning/evening feeding, increase water, add K-buffer');
+    if (w.temp_f < 32)       adj.push('❄ COLD: Increase energy density 8–12%, check water heaters');
+    if (w.wind_mph > 25)     adj.push(`⚠ HIGH WINDS (${w.wind_mph} mph): Secure feed, check windbreaks`);
+    if (w.precip_in > 0.25)  adj.push('🌧 WET: Watch mud/lameness, raise bunks');
+    if (!adj.length)         adj.push('✓ Favorable conditions — standard protocols');
+    return adj.join('\n');
   };
 
+  // -------------------------------------------------------------------
+  // Generate plan
+  // -------------------------------------------------------------------
   const generatePlan = async () => {
-    if (!selectedLot && lots.length > 0) {
-      toast.error('Please select a cattle lot');
-      return;
-    }
     setLoading(true);
     setPlan(null);
     setCurrentSavedPlanId(null);
 
-    // Fetch live weather for Shattuck, OK yard
     const liveWeather = await fetchWeather();
+    const econ = computeEconomics();
 
-    // Fetch a fresh count of existing plans for this lot to get correct version number
     let version = 1;
     try {
       const existing = selectedLot
@@ -635,25 +622,21 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
       version = (existing?.length || 0) + 1;
     } catch (_) {}
 
-    // Generate data-driven plan instantly (pass live weather)
-    const fallback = generateFallbackPlan(liveWeather);
+    const fallback = generateFallbackPlan(econ, liveWeather);
     setPlan({ ...fallback, _fallback: true });
     setLoading(false);
 
-    // Auto-save immediately (don't block UI on save failure)
     let savedId = null;
     try {
       savedId = await savePlan(fallback, false, version);
       setCurrentSavedPlanId(savedId);
       toast.success('Plan generated & saved');
-    } catch (_) {
-      toast.success('Plan generated');
-    }
+    } catch (_) { toast.success('Plan generated'); }
 
-    // Silently try to upgrade with AI in the background
+    // Try AI upgrade
     try {
       const result = await base44.integrations.Core.InvokeLLM({
-        prompt: buildPrompt(),
+        prompt: buildPrompt(econ),
         model: 'claude_sonnet_4_6',
         response_json_schema: {
           type: 'object',
@@ -662,7 +645,7 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
             vaccination_schedule: { type: 'string' },
             economic_projection: { type: 'string' },
             ai_recommendations: { type: 'string' },
-            summary: { type: 'string', description: 'One paragraph executive summary' },
+            summary: { type: 'string' },
             estimated_profit_per_head: { type: 'number' },
             estimated_roi_percent: { type: 'number' },
             estimated_cost_per_head: { type: 'number' },
@@ -676,20 +659,21 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
         queryClient.invalidateQueries({ queryKey: ['savedFeedPlans'] });
       }
       toast.success('Plan upgraded with AI & saved');
-    } catch (_) {
-      // Credits exhausted or error — keep data-driven plan, already saved
-    }
+    } catch (_) { /* credits exhausted — keep data-driven */ }
   };
 
+  // -------------------------------------------------------------------
+  // Render
+  // -------------------------------------------------------------------
   return (
     <div className="p-6 space-y-6 max-w-5xl">
       <SectionHeader
         title="AI FEED & HEALTH PLANNER"
-        subtitle="AI-optimized rations, vaccination schedules, and economic projections per lot"
+        subtitle="Rations, vaccinations, and economic projections driven by your inputs + live LC/FC boards"
         badge="AI POWERED"
       />
 
-      {/* Yard location + live weather badge */}
+      {/* Weather bar */}
       <div className="flex flex-wrap items-center gap-3 px-4 py-3 bg-card border border-border rounded-xl text-xs">
         <CloudSun className="w-4 h-4 text-primary flex-shrink-0" />
         <span className="text-muted-foreground font-medium">{YARD_ADDRESS}</span>
@@ -708,54 +692,52 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
           </>
         )}
         {!weather && !weatherLoading && (
-          <span className="text-muted-foreground">Weather loads when you generate a plan</span>
+          <span className="text-muted-foreground">Live weather loads when you generate a plan</span>
         )}
       </div>
 
-      {/* Saved Plans Toggle */}
+      {/* Live market snapshot */}
+      {market && (
+        <div className="flex flex-wrap gap-4 px-4 py-3 bg-card border border-border rounded-xl text-xs">
+          <span className="text-primary font-medium">LIVE MARKET ({market.date}):</span>
+          <span className="text-foreground font-semibold">LC ${market.lc_futures}/cwt</span>
+          <span className="text-foreground font-semibold">FC ${market.gf_futures}/cwt</span>
+          <span className="text-muted-foreground">Choice ${market.choice_cutout}/cwt</span>
+          <span className="text-muted-foreground">Select ${market.select_cutout}/cwt</span>
+          <span className="text-muted-foreground">Corn ${market.corn_price}/bu</span>
+          <span className="text-muted-foreground">SBM ${market.sbm_price}/ton</span>
+        </div>
+      )}
+
+      {/* Saved Plans */}
       <div className="flex items-center justify-between">
-        <button
-          onClick={() => setShowSavedPlans(o => !o)}
-          className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg text-sm text-foreground hover:bg-secondary/40 transition-colors"
-        >
+        <button onClick={() => setShowSavedPlans(o => !o)}
+          className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg text-sm text-foreground hover:bg-secondary/40 transition-colors">
           <FolderOpen className="w-4 h-4 text-primary" />
           Saved Plans ({savedPlans.length})
           {showSavedPlans ? <X className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />}
         </button>
         {plan && (
-          <button
-            onClick={() => { setPlan(null); setCurrentSavedPlanId(null); }}
-            className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-lg text-sm text-primary hover:bg-primary/20 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Generate New Plan
+          <button onClick={() => { setPlan(null); setCurrentSavedPlanId(null); }}
+            className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-lg text-sm text-primary hover:bg-primary/20 transition-colors">
+            <Plus className="w-4 h-4" /> Generate New Plan
           </button>
         )}
       </div>
 
-      {/* Saved Plans Drawer */}
       {showSavedPlans && (
-        <div className="bg-card border border-border rounded-xl p-4 space-y-2 max-h-80 overflow-y-auto">
-          {savedPlans.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No saved plans yet. Generate a plan to auto-save it.</p>
-          ) : (
-            savedPlans.map(sp => (
-              <button
-                key={sp.id}
-                onClick={() => loadSavedPlan(sp)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border text-left hover:bg-secondary/40 transition-colors ${currentSavedPlanId === sp.id ? 'border-primary/40 bg-primary/5' : 'border-border'}`}
-              >
+        <div className="bg-card border border-border rounded-xl p-4 space-y-2 max-h-72 overflow-y-auto">
+          {savedPlans.length === 0
+            ? <p className="text-sm text-muted-foreground text-center py-4">No saved plans yet.</p>
+            : savedPlans.map(sp => (
+              <button key={sp.id} onClick={() => loadSavedPlan(sp)}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-lg border text-left hover:bg-secondary/40 transition-colors ${currentSavedPlanId === sp.id ? 'border-primary/40 bg-primary/5' : 'border-border'}`}>
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-foreground truncate">{sp.lot_label || 'General Program'}</div>
                   <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
-                    <span>v{sp.version}</span>
-                    <span>·</span>
-                    <span className="capitalize">{sp.focus}</span>
-                    <span>·</span>
-                    {sp.is_ai_generated
-                      ? <span className="text-primary">AI</span>
-                      : <span className="text-amber-400">Data-driven</span>
-                    }
+                    <span>v{sp.version}</span><span>·</span>
+                    <span className="capitalize">{sp.focus}</span><span>·</span>
+                    {sp.is_ai_generated ? <span className="text-primary">AI</span> : <span className="text-amber-400">Data-driven</span>}
                     {sp.estimated_profit_per_head != null && (
                       <><span>·</span><span className={sp.estimated_profit_per_head >= 0 ? 'text-success' : 'text-danger'}>${sp.estimated_profit_per_head}/hd</span></>
                     )}
@@ -769,16 +751,16 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
                 </div>
               </button>
             ))
-          )}
+          }
         </div>
       )}
 
       {/* Config Panel */}
-      <div className="bg-card border border-border rounded-xl p-6 space-y-5">
-        <h3 className="font-bebas text-primary text-lg">CONFIGURE AI PLAN</h3>
+      <div className="bg-card border border-border rounded-xl p-6 space-y-6">
+        <h3 className="font-bebas text-primary text-lg">CONFIGURE PLAN</h3>
 
+        {/* Lot + Plan Type + Focus */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Lot selector */}
           <div className="md:col-span-2">
             <label className="text-xs text-muted-foreground mb-1 block">Cattle Lot</label>
             <select className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
@@ -792,7 +774,6 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
             </select>
           </div>
 
-          {/* Plan type */}
           <div>
             <label className="text-xs text-muted-foreground mb-2 block">Plan Type</label>
             <div className="space-y-2">
@@ -807,7 +788,6 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
             </div>
           </div>
 
-          {/* Optimization focus */}
           <div>
             <label className="text-xs text-muted-foreground mb-2 block">Optimization Focus</label>
             <div className="space-y-2">
@@ -820,107 +800,196 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
               ))}
             </div>
           </div>
+        </div>
 
-          {/* Intake Date */}
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Intake Date</label>
-            <input type="date" className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
-              value={intakeDate} onChange={e => setIntakeDate(e.target.value)} />
-          </div>
-
-          {/* Purchase Price */}
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Purchase Price</label>
-            <div className="flex gap-2">
-              <input type="number" placeholder="e.g. 150" step="0.01" className="flex-1 bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
-                value={purchasePricePerUnit} onChange={e => setPurchasePricePerUnit(e.target.value)} />
-              <select className="bg-input border border-border rounded-md px-2 py-2 text-sm text-foreground"
-                value={purchasePriceUnit} onChange={e => setPurchasePriceUnit(e.target.value)}>
-                <option value="cwt">$/cwt</option>
-                <option value="lb">$/lb</option>
-                <option value="head">$/hd</option>
-              </select>
+        {/* Origin / Transit */}
+        <div>
+          <h4 className="font-bebas text-foreground text-base mb-3 flex items-center gap-2">
+            <Truck className="w-4 h-4 text-primary" /> ORIGIN & TRANSIT
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Cattle Origin (City, State)</label>
+              <div className="flex gap-2">
+                <input
+                  placeholder="e.g. Dodge City, KS"
+                  className="flex-1 bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                  value={originCity}
+                  onChange={e => {
+                    setOriginCity(e.target.value);
+                    setTransitMiles(null); setTransitHours(null); setTransitShrink(null);
+                  }}
+                />
+                <button
+                  onClick={computeTransit}
+                  disabled={geocoding || !originCity.trim()}
+                  className="px-3 py-2 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors whitespace-nowrap"
+                >
+                  {geocoding ? '...' : 'Calculate'}
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Age at Entry */}
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Age at Entry (days) <span className="text-primary">— enables USDA BQA age-limit breakeven</span></label>
-            <input type="number" placeholder="e.g. 100" className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
-              value={ageAtEntryDays} onChange={e => setAgeAtEntryDays(e.target.value)} />
-          </div>
+            {/* Transit results */}
+            {transitMiles != null && (
+              <>
+                <div className="flex items-center gap-4 text-sm col-span-1 md:col-span-1">
+                  <div className="bg-primary/10 border border-primary/20 rounded-lg px-3 py-2 text-center">
+                    <div className="font-bebas text-xl text-primary">{transitMiles} mi</div>
+                    <div className="text-xs text-muted-foreground">Road Distance</div>
+                  </div>
+                  <div className="bg-card border border-border rounded-lg px-3 py-2 text-center">
+                    <div className="font-bebas text-xl text-foreground">{transitHours?.toFixed(1)} hrs</div>
+                    <div className="text-xs text-muted-foreground">Est. TOA @ {AVG_SPEED_MPH} mph</div>
+                  </div>
+                  <div className={`border rounded-lg px-3 py-2 text-center ${transitShrink >= 4 ? 'bg-danger/10 border-danger/30' : transitShrink >= 3 ? 'bg-warning/10 border-warning/30' : 'bg-success/10 border-success/30'}`}>
+                    <div className={`font-bebas text-xl ${transitShrink >= 4 ? 'text-danger' : transitShrink >= 3 ? 'text-warning' : 'text-success'}`}>{transitShrink}%</div>
+                    <div className="text-xs text-muted-foreground">Est. Shrink</div>
+                  </div>
+                </div>
+              </>
+            )}
 
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Target Days on Feed</label>
-            <input type="number" placeholder="e.g. 180" className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
-              value={daysOnFeed} onChange={e => setDaysOnFeed(e.target.value)} />
-          </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">
+                Shrink % Override <span className="text-primary">(leave blank to use calculated)</span>
+              </label>
+              <input type="number" step="0.1" placeholder={transitShrink ? `Auto: ${transitShrink}%` : 'e.g. 3.5'}
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={shrinkOverride} onChange={e => setShrinkOverride(e.target.value)} />
+            </div>
 
-          <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Target Sell Weight (lbs/hd)</label>
-            <input type="number" placeholder="e.g. 1350" className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
-              value={targetWeight} onChange={e => setTargetWeight(e.target.value)} />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-xs text-muted-foreground mb-1 block">Environment / Climate / Region</label>
-            <input placeholder="e.g. Southern Plains, summer heat, open lot, no shade" className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
-              value={environment} onChange={e => setEnvironment(e.target.value)} />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="text-xs text-muted-foreground mb-1 block">Additional Context / Special Instructions</label>
-            <textarea rows={2} placeholder="e.g. High morbidity last 2 weeks, buyer wants CAB-eligible, avoid beta-agonists for export market..." className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground resize-none"
-              value={additionalContext} onChange={e => setAdditionalContext(e.target.value)} />
+            {transitMiles != null && (
+              <div className={`md:col-span-2 px-3 py-2 rounded-lg border text-xs ${transitMiles > 600 ? 'bg-danger/10 border-danger/30 text-danger' : transitMiles > 250 ? 'bg-warning/10 border-warning/30 text-warning' : 'bg-success/10 border-success/30 text-success'}`}>
+                {transitMiles > 600
+                  ? '⚠ HIGH STRESS HAUL (>600 mi) — Extended receiving protocol, BRD metaphylaxis consideration, 28-day monitoring window'
+                  : transitMiles > 250
+                    ? '⚠ MODERATE HAUL (250–600 mi) — Standard BRD protocol, enhanced monitoring week 1–2'
+                    : '✓ SHORT HAUL (<250 mi) — Low transit stress, normal receiving protocol'}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Context preview */}
+        {/* Economics Inputs */}
+        <div>
+          <h4 className="font-bebas text-foreground text-base mb-3 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-primary" /> CATTLE ECONOMICS
+          </h4>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Arrival Wt (lbs/hd)</label>
+              <input type="number" placeholder={lot?.current_weight || lot?.purchase_weight || '700'}
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={arrivalWt} onChange={e => setArrivalWt(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Shipping Wt (lbs/hd)</label>
+              <input type="number" placeholder={lot?.target_weight || '1300'}
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={shippingWt} onChange={e => setShippingWt(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Purchase Price ($/cwt)</label>
+              <input type="number" step="0.01" placeholder={lot?.purchase_price || '150'}
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">ADG (lbs/hd/day)</label>
+              <input type="number" step="0.1" placeholder="2.8"
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={adg} onChange={e => setAdg(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">COG ($/lb)</label>
+              <input type="number" step="0.01" placeholder={lot?.cog || '0.90'}
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={cog} onChange={e => setCog(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Days on Feed</label>
+              <input type="number" placeholder="Auto from ADG"
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={daysOnFeed} onChange={e => setDaysOnFeed(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Interest Rate (%/yr)</label>
+              <input type="number" step="0.1" placeholder="8"
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={interestRate} onChange={e => setInterestRate(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Trucking In ($/hd)</label>
+              <input type="number" step="0.01" placeholder="0"
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={truckingIn} onChange={e => setTruckingIn(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Trucking Out ($/hd)</label>
+              <input type="number" step="0.01" placeholder="0"
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={truckingOut} onChange={e => setTruckingOut(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Intake Date</label>
+              <input type="date" className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={intakeDate} onChange={e => setIntakeDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Age at Entry (days)</label>
+              <input type="number" placeholder="e.g. 300"
+                className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={ageAtEntryDays} onChange={e => setAgeAtEntryDays(e.target.value)} />
+            </div>
+          </div>
+        </div>
+
+        {/* Additional context */}
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Additional Notes / Special Instructions</label>
+          <textarea rows={2} placeholder="e.g. High morbidity last 2 weeks, CAB-eligible, avoid beta-agonists for export market..."
+            className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground resize-none"
+            value={additionalContext} onChange={e => setAdditionalContext(e.target.value)} />
+        </div>
+
+        {/* Lot context preview */}
         {lot && (
           <div className="flex flex-wrap gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg text-xs">
-            <span className="text-primary font-medium">Lot Context Loaded:</span>
-            <span className="text-muted-foreground">{lot.cattle_class}</span>
-            <span className="text-muted-foreground">{lot.head_count} hd</span>
-            <span className="text-muted-foreground">{lot.current_weight || lot.purchase_weight} lbs/hd</span>
-            <span className="text-muted-foreground">Stage: {lot.stage}</span>
-            {market && <span className="text-success">+ Live market data</span>}
+            <span className="text-primary font-medium">Lot Loaded:</span>
+            <span className="text-muted-foreground">{lot.cattle_class} | {lot.head_count} hd | {lot.current_weight || lot.purchase_weight} lbs | Stage: {lot.stage}</span>
+            {market && <span className="text-success">+ LC ${market.lc_futures} | FC ${market.gf_futures}</span>}
             {feedProtocols.length > 0 && <span className="text-success">+ {feedProtocols.length} feed commodities</span>}
             {healthProtocols.length > 0 && <span className="text-success">+ {healthProtocols.length} health protocols</span>}
-            {healthEvents.length > 0 && <span className="text-warning">+ {healthEvents.length} health events history</span>}
+            {healthEvents.length > 0 && <span className="text-warning">+ {healthEvents.length} health events</span>}
           </div>
         )}
 
         <div className="flex items-center gap-4 flex-wrap">
-          <button
-            onClick={generatePlan}
-            disabled={loading}
-            className="flex items-center gap-3 px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bebas text-lg tracking-wide hover:bg-primary/90 disabled:opacity-60 transition-colors"
-          >
+          <button onClick={generatePlan} disabled={loading}
+            className="flex items-center gap-3 px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bebas text-lg tracking-wide hover:bg-primary/90 disabled:opacity-60 transition-colors">
             {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-            {loading ? 'GENERATING...' : plan ? 'GENERATE NEW PLAN' : 'GENERATE AI PLAN'}
+            {loading ? 'GENERATING...' : plan ? 'GENERATE NEW PLAN' : 'GENERATE PLAN'}
           </button>
           {currentSavedPlanId && !loading && (
             <div className="flex items-center gap-1.5 text-xs text-success">
-              <Save className="w-3.5 h-3.5" />
-              Auto-saved
+              <Save className="w-3.5 h-3.5" /> Auto-saved
             </div>
           )}
         </div>
-        {loading && (
-          <p className="text-xs text-muted-foreground">Generating plan from your data instantly, then upgrading with AI...</p>
-        )}
+        {loading && <p className="text-xs text-muted-foreground">Generating from your inputs + live LC/FC boards...</p>}
       </div>
 
       {/* Results */}
       {plan && (
         <div className="space-y-4">
-          {/* Summary KPIs */}
-          {(plan.estimated_profit_per_head || plan.estimated_roi_percent || plan.estimated_cost_per_head) && (
+          {/* KPIs */}
+          {(plan.estimated_profit_per_head != null || plan.estimated_roi_percent != null || plan.estimated_cost_per_head != null) && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: 'Est. Profit / Head', value: plan.estimated_profit_per_head != null ? `${plan.estimated_profit_per_head >= 0 ? '+' : ''}$${plan.estimated_profit_per_head.toFixed(0)}` : '—', color: plan.estimated_profit_per_head >= 0 ? 'text-success' : 'text-danger' },
+                { label: 'Est. Profit / Head', value: plan.estimated_profit_per_head != null ? `${plan.estimated_profit_per_head >= 0 ? '+' : ''}$${plan.estimated_profit_per_head}` : '—', color: plan.estimated_profit_per_head >= 0 ? 'text-success' : 'text-danger' },
                 { label: 'Est. ROI %', value: plan.estimated_roi_percent != null ? `${plan.estimated_roi_percent.toFixed(1)}%` : '—', color: plan.estimated_roi_percent >= 0 ? 'text-success' : 'text-danger' },
-                { label: 'Cost / Head', value: plan.estimated_cost_per_head != null ? `$${plan.estimated_cost_per_head.toFixed(0)}` : '—', color: 'text-warning' },
+                { label: 'Cost / Head', value: plan.estimated_cost_per_head != null ? `$${plan.estimated_cost_per_head}` : '—', color: 'text-warning' },
                 { label: 'Target Grade', value: plan.target_grade || '—', color: 'text-primary' },
               ].map(k => (
                 <div key={k.label} className="bg-card border border-border rounded-xl p-4 text-center">
@@ -931,20 +1000,17 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
             </div>
           )}
 
-          {/* Date & USDA BQA Age-Limit Breakeven banner */}
+          {/* USDA / Date cards */}
           {(plan._expectedOutDate || plan._breakevenAtLimit != null) && (
             <div className="space-y-2">
-              {/* USDA grade limit context bar */}
               {plan._usdaLimit && (
                 <div className={`flex flex-wrap items-center gap-2 px-4 py-2 rounded-lg border text-xs font-medium ${plan._ageAtEntry && (plan._ageAtEntry + (parseInt(daysOnFeed) || 0)) > plan._usdaLimit.days ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-success/10 border-success/30 text-success'}`}>
-                  <span>USDA BQA Grade Limit:</span>
-                  <span className="font-bebas text-sm">{plan._usdaLimit.label}</span>
-                  <span>|</span>
-                  <span>Max age {plan._usdaLimit.months} months ({plan._usdaLimit.days} days) to qualify as {plan._usdaLimit.grade}</span>
+                  <span>USDA BQA:</span>
+                  <span className="font-bebas">{plan._usdaLimit.label}</span>
+                  <span>| Max {plan._usdaLimit.months} mo ({plan._usdaLimit.days} days) for {plan._usdaLimit.grade}</span>
                   {plan._ageAtEntry && (plan._ageAtEntry + (parseInt(daysOnFeed) || 0)) > plan._usdaLimit.days
-                    ? <span className="ml-auto">⚠ Projected sale age EXCEEDS {plan._usdaLimit.grade} limit — animals may grade Commercial</span>
-                    : <span className="ml-auto">✓ Within {plan._usdaLimit.grade} packer age limit</span>
-                  }
+                    ? <span className="ml-auto">⚠ Exceeds limit</span>
+                    : <span className="ml-auto">✓ Within limit</span>}
                 </div>
               )}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -957,26 +1023,26 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
                 {plan._maxDofToLimit != null && plan._usdaLimit && (
                   <div className={`bg-card border rounded-xl p-4 text-center ${plan._maxDofToLimit < (parseInt(daysOnFeed) || 0) ? 'border-danger/40' : 'border-border'}`}>
                     <div className={`font-bebas text-xl ${plan._maxDofToLimit < (parseInt(daysOnFeed) || 0) ? 'text-danger' : 'text-success'}`}>{plan._maxDofToLimit} days</div>
-                    <div className="text-xs text-muted-foreground">Max DOF — {plan._usdaLimit.grade} limit</div>
+                    <div className="text-xs text-muted-foreground">Max DOF — {plan._usdaLimit.grade}</div>
                   </div>
                 )}
-                {plan._weightAtLimit != null && plan._usdaLimit && (
+                {plan._weightAtLimit != null && (
                   <div className="bg-card border border-border rounded-xl p-4 text-center">
                     <div className="font-bebas text-xl text-amber-400">{plan._weightAtLimit} lbs</div>
-                    <div className="text-xs text-muted-foreground">Est. Wt at {plan._usdaLimit.months}-mo Limit</div>
+                    <div className="text-xs text-muted-foreground">Wt at Age Limit</div>
                   </div>
                 )}
                 {plan._breakevenAtLimit != null && plan._usdaLimit && (
                   <div className="bg-card border border-border rounded-xl p-4 text-center">
                     <div className="font-bebas text-xl text-warning">${plan._breakevenAtLimit}/cwt</div>
-                    <div className="text-xs text-muted-foreground">BE at {plan._usdaLimit.grade} Age Limit</div>
+                    <div className="text-xs text-muted-foreground">BE at {plan._usdaLimit.grade} Limit</div>
                   </div>
                 )}
               </div>
             </div>
           )}
 
-          {/* Executive Summary */}
+          {/* Summary */}
           {plan.summary && (
             <div className="bg-primary/10 border border-primary/20 rounded-xl p-5">
               <div className="flex items-center gap-2 mb-2">
@@ -987,50 +1053,34 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
             </div>
           )}
 
-          {/* Collapsible sections */}
+          {/* Sections */}
           <div className="space-y-3">
             {plan.ration_program && planType !== 'vaccination' && (
-              <PlanSection
-                title="🌾 FEED RATION PROGRAM"
-                icon={Wheat}
+              <PlanSection title="🌾 FEED RATION PROGRAM" icon={Wheat}
                 color="bg-amber-500/5 border-amber-500/20 text-amber-200"
-                content={plan.ration_program}
-                defaultOpen={true}
-              />
+                content={plan.ration_program} defaultOpen={true} />
             )}
             {plan.vaccination_schedule && planType !== 'ration' && (
-              <PlanSection
-                title="💉 VACCINATION & HEALTH SCHEDULE"
-                icon={Syringe}
+              <PlanSection title="💉 VACCINATION & HEALTH SCHEDULE" icon={Syringe}
                 color="bg-success/5 border-success/20 text-success"
-                content={plan.vaccination_schedule}
-                defaultOpen={planType === 'vaccination'}
-              />
+                content={plan.vaccination_schedule} defaultOpen={planType === 'vaccination'} />
             )}
             {plan.economic_projection && (
-              <PlanSection
-                title="📊 ECONOMIC PROJECTION"
-                icon={TrendingUp}
+              <PlanSection title="📊 ECONOMIC PROJECTION" icon={TrendingUp}
                 color="bg-blue-500/5 border-blue-500/20 text-blue-300"
-                content={plan.economic_projection}
-                defaultOpen={false}
-              />
+                content={plan.economic_projection} defaultOpen={true} />
             )}
             {plan.ai_recommendations && (
-              <PlanSection
-                title="⚡ AI RECOMMENDATIONS"
-                icon={Sparkles}
+              <PlanSection title="⚡ AI RECOMMENDATIONS" icon={Sparkles}
                 color="bg-primary/5 border-primary/20 text-primary"
-                content={plan.ai_recommendations}
-                defaultOpen={false}
-              />
+                content={plan.ai_recommendations} defaultOpen={false} />
             )}
           </div>
 
           <p className="text-xs text-muted-foreground text-center pt-2">
             {plan._fallback
-              ? '⚡ Data-driven analysis generated from your actual records (AI unavailable). Validate with your nutritionist and veterinarian.'
-              : 'Generated by AI using live market data, lot performance, and feed commodity costs. Always validate with your nutritionist and veterinarian.'}
+              ? '⚡ Data-driven analysis from your inputs + live LC/FC boards. Validate with your nutritionist and veterinarian.'
+              : 'AI-generated using live market data, transit info, and lot performance. Validate with your nutritionist and veterinarian.'}
           </p>
         </div>
       )}
