@@ -58,6 +58,10 @@ export default function AIFeedPlanner() {
   const [plan, setPlan] = useState(null);
   const [showSavedPlans, setShowSavedPlans] = useState(false);
   const [currentSavedPlanId, setCurrentSavedPlanId] = useState(null);
+  const [intakeDate, setIntakeDate] = useState('');
+  const [purchasePricePerUnit, setPurchasePricePerUnit] = useState('');
+  const [purchasePriceUnit, setPurchasePriceUnit] = useState('cwt');
+  const [ageAtEntryDays, setAgeAtEntryDays] = useState('');
 
   const { data: lots = [] } = useQuery({
     queryKey: ['activeLots'],
@@ -94,6 +98,40 @@ export default function AIFeedPlanner() {
 
   const lot = lots.find(l => l.id === selectedLot);
   const market = marketInputs[0];
+
+  // Normalize purchase price to $/cwt for calculations
+  const getPurchasePriceCwt = (buyWeight) => {
+    const p = parseFloat(purchasePricePerUnit) || (lot?.purchase_price) || 150;
+    if (purchasePriceUnit === 'cwt') return p;
+    if (purchasePriceUnit === 'lb') return p * 100;
+    if (purchasePriceUnit === 'head') return buyWeight > 0 ? (p / buyWeight) * 100 : 150;
+    return p;
+  };
+
+  // Compute date-based projections
+  const computeDateProjections = (dof) => {
+    const intake = intakeDate || lot?.purchase_date || '';
+    const ageEntry = parseInt(ageAtEntryDays) || null;
+
+    let expectedOutDate = null;
+    if (intake && dof) {
+      const d = new Date(intake);
+      d.setDate(d.getDate() + dof);
+      expectedOutDate = d.toISOString().split('T')[0];
+    }
+
+    let maxDofTo426 = null;
+    let breakevenDaysNote = null;
+    if (ageEntry !== null) {
+      maxDofTo426 = Math.max(0, 426 - ageEntry);
+      breakevenDaysNote = maxDofTo426;
+    } else if (intake) {
+      // Estimate age from purchase_date if no age provided (Holstein calves ~60 days at arrival typical)
+      maxDofTo426 = null;
+    }
+
+    return { expectedOutDate, maxDofTo426, intake };
+  };
 
   const buildPrompt = () => {
     const lotInfo = lot ? `
@@ -208,8 +246,28 @@ Provide a complete timeline from arrival/processing through market:
     const healthCostHd = healthProtocols.length > 0
       ? healthProtocols.reduce((s, p) => s + (p.cost_per_head || 0), 0)
       : 55;
-    const buyPricePerHead = (l?.purchase_price || 150) / 100 * buyWeight;
+    const purchasePriceCwt = getPurchasePriceCwt(buyWeight);
+    const buyPricePerHead = purchasePriceCwt / 100 * buyWeight;
     const totalCostPerHead = buyPricePerHead + feedCost + yardageCost + healthCostHd + 35;
+
+    // Date / age projections
+    const { expectedOutDate, maxDofTo426 } = computeDateProjections(dof);
+    const ageEntry = parseInt(ageAtEntryDays) || null;
+    const ageAtSale = ageEntry !== null ? ageEntry + dof : null;
+    const exceeds426 = ageAtSale !== null && ageAtSale > 426;
+
+    // 426-day age breakeven: project weight and cost at exactly 426 days
+    let breakeven426 = null;
+    let weightAt426 = null;
+    if (ageEntry !== null) {
+      const dofTo426 = Math.max(0, 426 - ageEntry);
+      const avgADG = gainLbs > 0 ? gainLbs / dof : 2.8;
+      weightAt426 = Math.round(buyWeight + avgADG * dofTo426);
+      const feedCost426 = Math.max(0, (weightAt426 - buyWeight)) * cog;
+      const yardage426 = yardage * dofTo426;
+      const totalCost426 = buyPricePerHead + feedCost426 + yardage426 + healthCostHd + 35;
+      breakeven426 = weightAt426 > 0 ? parseFloat((totalCost426 / weightAt426 * 100).toFixed(2)) : null;
+    }
     const lc = mkt?.lc_futures || 241;
     const corn = mkt?.corn_price || 4.22;
     const revenuePerHead = sellWeight * (lc / 100);
@@ -294,8 +352,14 @@ ESTIMATED TOTAL HEALTH COST: $${healthCostHd.toFixed(0)}/hd`;
     const econProjection = `ECONOMIC PROJECTION (DATA-DRIVEN)
 ${l ? `Lot: ${l.lot_id || l.cattle_class} | Focus: ${FOCUS.find(f => f.value === focus)?.label}` : 'General estimate'}
 
+PURCHASE DETAILS:
+• Intake date:           ${intakeDate || l?.purchase_date || 'Not set'}
+• Buy weight:            ${buyWeight} lbs/hd
+• Purchase price:        $${purchasePriceCwt.toFixed(2)}/cwt ($${buyPricePerHead.toFixed(0)}/hd)
+${ageEntry !== null ? `• Age at entry:          ${ageEntry} days old` : ''}
+
 COST BREAKDOWN:
-• Purchase cost:         $${buyPricePerHead.toFixed(0)}/hd  (${buyWeight} lbs @ $${l?.purchase_price || 150}/cwt)
+• Purchase cost:         $${buyPricePerHead.toFixed(0)}/hd
 • Feed cost:             $${feedCost.toFixed(0)}/hd  (${gainLbs} lb gain @ $${cog}/lb COG)
 • Yardage:               $${yardageCost.toFixed(0)}/hd  ($${yardage}/hd/day × ${dof} days)
 • Health/meds:           $${healthCostHd.toFixed(0)}/hd
@@ -303,6 +367,19 @@ COST BREAKDOWN:
 ─────────────────────────────────────────
 TOTAL COST:              $${totalCostPerHead.toFixed(0)}/hd
 
+TIMELINE:
+• Days on feed:          ${dof} days
+• Expected out date:     ${expectedOutDate || 'N/A (set intake date)'}
+${ageAtSale !== null ? `• Projected age at sale: ${ageAtSale} days${exceeds426 ? ' ⚠ EXCEEDS 426-DAY LIMIT' : ' ✓ Within 426-day limit'}` : ''}
+${maxDofTo426 !== null ? `• Max DOF to stay ≤426:  ${maxDofTo426} days` : ''}
+
+${breakeven426 !== null ? `426-DAY AGE BREAKEVEN ANALYSIS:
+• Weight at 426 days:    ${weightAt426} lbs/hd (est.)
+• Breakeven price:       $${breakeven426}/cwt to recover all costs
+• Current LC futures:    $${lc}/cwt — ${lc >= breakeven426 ? '✓ ABOVE breakeven' : '⚠ BELOW breakeven at $' + (breakeven426 - lc).toFixed(2) + '/cwt deficit'}
+${l?.head_count ? `• Breakeven lot total:   $${(breakeven426 / 100 * weightAt426 * l.head_count).toFixed(0)} for ${l.head_count} hd` : ''}
+─────────────────────────────────────────
+` : ''}
 REVENUE PROJECTION:
 • Sell weight:           ${sellWeight} lbs/hd
 • LC Futures:            $${lc}/cwt ${mkt?.date ? '(' + mkt.date + ')' : ''}
@@ -342,11 +419,17 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
       vaccination_schedule: vaccinationSchedule,
       economic_projection: econProjection,
       ai_recommendations: recommendations,
-      summary: `${l ? `Lot ${l.lot_id || l.cattle_class} (${l.head_count} hd)` : 'General program'}: Estimated ${roi.toFixed(1)}% ROI with $${profitPerHead.toFixed(0)}/hd projected profit over ${dof} days on feed. Total cost: $${totalCostPerHead.toFixed(0)}/hd. Sell target: ${sellWeight} lbs @ current LC futures of $${lc}/cwt. Grade target: ${targetGrade}. Feed cost of gain: $${cog}/lb using ${feedProtocols.length > 0 ? feedProtocols.length + ' commodities on record' : 'standard TMR blend'}.`,
+      summary: `${l ? `Lot ${l.lot_id || l.cattle_class} (${l.head_count} hd)` : 'General program'}: Estimated ${roi.toFixed(1)}% ROI with $${profitPerHead.toFixed(0)}/hd projected profit over ${dof} days on feed. Total cost: $${totalCostPerHead.toFixed(0)}/hd. Buy: $${purchasePriceCwt.toFixed(2)}/cwt. Sell target: ${sellWeight} lbs @ $${lc}/cwt.${expectedOutDate ? ' Est. out: ' + expectedOutDate + '.' : ''}${breakeven426 !== null ? ' 426-day BE: $' + breakeven426 + '/cwt.' : ''} Grade target: ${targetGrade}.`,
       estimated_profit_per_head: Math.round((revenuePerHead * 0.97) - totalCostPerHead),
       estimated_roi_percent: parseFloat(roi.toFixed(1)),
       estimated_cost_per_head: Math.round(totalCostPerHead),
       target_grade: targetGrade,
+      // Date / age fields passed back for saving
+      _expectedOutDate: expectedOutDate,
+      _maxDofTo426: maxDofTo426,
+      _breakeven426: breakeven426,
+      _weightAt426: weightAt426,
+      _ageAtEntry: ageEntry,
     };
   };
 
@@ -358,8 +441,16 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
       lot_label: l ? `${l.lot_id || l.cattle_class} — ${l.head_count} hd @ ${l.current_weight || l.purchase_weight} lbs` : 'General Program',
       plan_type: planType,
       focus,
+      intake_date: intakeDate || l?.purchase_date || undefined,
+      purchase_price_per_unit: purchasePricePerUnit ? Number(purchasePricePerUnit) : undefined,
+      purchase_price_unit: purchasePriceUnit,
       days_on_feed: daysOnFeed ? Number(daysOnFeed) : undefined,
       target_weight: targetWeight ? Number(targetWeight) : undefined,
+      expected_out_date: planData._expectedOutDate || undefined,
+      age_at_entry_days: planData._ageAtEntry != null ? planData._ageAtEntry : undefined,
+      max_dof_to_426: planData._maxDofTo426 != null ? planData._maxDofTo426 : undefined,
+      breakeven_at_426_days: planData._breakeven426 != null ? planData._breakeven426 : undefined,
+      breakeven_weight_at_426: planData._weightAt426 != null ? planData._weightAt426 : undefined,
       environment,
       additional_context: additionalContext,
       ration_program: planData.ration_program || '',
@@ -385,6 +476,10 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
     setSelectedLot(saved.lot_id || '');
     setPlanType(saved.plan_type || 'full');
     setFocus(saved.focus || 'balanced');
+    setIntakeDate(saved.intake_date || '');
+    setPurchasePricePerUnit(saved.purchase_price_per_unit ? String(saved.purchase_price_per_unit) : '');
+    setPurchasePriceUnit(saved.purchase_price_unit || 'cwt');
+    setAgeAtEntryDays(saved.age_at_entry_days ? String(saved.age_at_entry_days) : '');
     setDaysOnFeed(saved.days_on_feed ? String(saved.days_on_feed) : '');
     setTargetWeight(saved.target_weight ? String(saved.target_weight) : '');
     setEnvironment(saved.environment || '');
@@ -587,6 +682,35 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
             </div>
           </div>
 
+          {/* Intake Date */}
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Intake Date</label>
+            <input type="date" className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+              value={intakeDate} onChange={e => setIntakeDate(e.target.value)} />
+          </div>
+
+          {/* Purchase Price */}
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Purchase Price</label>
+            <div className="flex gap-2">
+              <input type="number" placeholder="e.g. 150" step="0.01" className="flex-1 bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+                value={purchasePricePerUnit} onChange={e => setPurchasePricePerUnit(e.target.value)} />
+              <select className="bg-input border border-border rounded-md px-2 py-2 text-sm text-foreground"
+                value={purchasePriceUnit} onChange={e => setPurchasePriceUnit(e.target.value)}>
+                <option value="cwt">$/cwt</option>
+                <option value="lb">$/lb</option>
+                <option value="head">$/hd</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Age at Entry */}
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Age at Entry (days) <span className="text-primary">— enables 426-day BE</span></label>
+            <input type="number" placeholder="e.g. 100" className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
+              value={ageAtEntryDays} onChange={e => setAgeAtEntryDays(e.target.value)} />
+          </div>
+
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Target Days on Feed</label>
             <input type="number" placeholder="e.g. 180" className="w-full bg-input border border-border rounded-md px-3 py-2 text-sm text-foreground"
@@ -665,6 +789,36 @@ NOTE: This is a data-driven analysis generated from your actual lot, market, and
                   <div className="text-xs text-muted-foreground">{k.label}</div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Date & 426-day breakeven banner */}
+          {(plan._expectedOutDate || plan._breakeven426 != null) && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {plan._expectedOutDate && (
+                <div className="bg-card border border-border rounded-xl p-4 text-center">
+                  <div className="font-bebas text-xl text-primary">{plan._expectedOutDate}</div>
+                  <div className="text-xs text-muted-foreground">Expected Out Date</div>
+                </div>
+              )}
+              {plan._maxDofTo426 != null && (
+                <div className={`bg-card border rounded-xl p-4 text-center ${plan._maxDofTo426 < (parseInt(daysOnFeed) || 0) ? 'border-danger/40' : 'border-border'}`}>
+                  <div className={`font-bebas text-xl ${plan._maxDofTo426 < (parseInt(daysOnFeed) || 0) ? 'text-danger' : 'text-success'}`}>{plan._maxDofTo426} days</div>
+                  <div className="text-xs text-muted-foreground">Max DOF to 426-day limit</div>
+                </div>
+              )}
+              {plan._weightAt426 != null && (
+                <div className="bg-card border border-border rounded-xl p-4 text-center">
+                  <div className="font-bebas text-xl text-amber-400">{plan._weightAt426} lbs</div>
+                  <div className="text-xs text-muted-foreground">Est. Weight at 426 Days</div>
+                </div>
+              )}
+              {plan._breakeven426 != null && (
+                <div className="bg-card border border-border rounded-xl p-4 text-center">
+                  <div className="font-bebas text-xl text-warning">${plan._breakeven426}/cwt</div>
+                  <div className="text-xs text-muted-foreground">Breakeven at 426 Days</div>
+                </div>
+              )}
             </div>
           )}
 

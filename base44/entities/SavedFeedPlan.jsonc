@@ -21,11 +21,50 @@
     "focus": {
       "type": "string"
     },
+    "intake_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date cattle entered the lot/yard"
+    },
+    "purchase_price_per_unit": {
+      "type": "number",
+      "description": "Purchase price as entered"
+    },
+    "purchase_price_unit": {
+      "type": "string",
+      "enum": [
+        "cwt",
+        "lb",
+        "head"
+      ],
+      "description": "Unit for purchase price"
+    },
     "days_on_feed": {
       "type": "number"
     },
     "target_weight": {
       "type": "number"
+    },
+    "expected_out_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Calculated exit date based on intake + DOF"
+    },
+    "age_at_entry_days": {
+      "type": "number",
+      "description": "Estimated age in days at intake"
+    },
+    "max_dof_to_426": {
+      "type": "number",
+      "description": "Max days on feed before hitting 426-day age limit"
+    },
+    "breakeven_at_426_days": {
+      "type": "number",
+      "description": "Required sell price $/cwt to break even at 426 days"
+    },
+    "breakeven_weight_at_426": {
+      "type": "number",
+      "description": "Estimated weight at 426 days lbs/hd"
     },
     "environment": {
       "type": "string"
@@ -66,12 +105,10 @@
     },
     "version": {
       "type": "number",
-      "description": "Iteration number for same lot",
       "default": 1
     },
     "generated_by": {
-      "type": "string",
-      "description": "User email"
+      "type": "string"
     },
     "notes": {
       "type": "string"
