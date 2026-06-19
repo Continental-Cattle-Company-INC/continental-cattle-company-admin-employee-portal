@@ -1,0 +1,81 @@
+{
+  "name": "Alert",
+  "type": "object",
+  "properties": {
+    "alert_type": {
+      "type": "string",
+      "enum": [
+        "new_load",
+        "fuel_threshold",
+        "route_change",
+        "system"
+      ],
+      "description": "Type of alert"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "default": "medium",
+      "description": "Alert severity level"
+    },
+    "title": {
+      "type": "string",
+      "description": "Alert title"
+    },
+    "message": {
+      "type": "string",
+      "description": "Detailed alert message"
+    },
+    "related_entity": {
+      "type": "string",
+      "description": "Related entity (e.g., CattleLot, DealCalculator)"
+    },
+    "related_entity_id": {
+      "type": "string",
+      "description": "ID of related entity record"
+    },
+    "fuel_cost_per_mile": {
+      "type": "number",
+      "description": "Fuel cost per mile if applicable"
+    },
+    "threshold_exceeded": {
+      "type": "number",
+      "description": "Threshold that was exceeded"
+    },
+    "recipient_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Roles that should receive this alert"
+    },
+    "is_read": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether alert has been read"
+    },
+    "acknowledged_by": {
+      "type": "string",
+      "description": "User email who acknowledged the alert"
+    },
+    "acknowledged_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When alert was acknowledged"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes or actions taken"
+    }
+  },
+  "required": [
+    "alert_type",
+    "title",
+    "message"
+  ]
+}

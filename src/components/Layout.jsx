@@ -8,7 +8,7 @@ import {
   LayoutDashboard, TrendingUp, Calculator, BarChart3,
   Beef, Truck, Globe, BookOpen, Settings, ShieldAlert, Activity, Menu, X, DollarSign,
   Briefcase, Pill, Zap, Workflow, Shield, ShoppingCart, Scale, ListChecks, Building2,
-  Send, Wheat, HeartPulse, Users, Wrench, Brain
+  Send, Wheat, HeartPulse, Users, Wrench, Brain, Bell
 } from 'lucide-react';
 
 // Nav items — the `roles` array is used as a FALLBACK only when a user doesn't match
@@ -38,6 +38,7 @@ const navItemsConfig = [
   { label: 'AI Feed Planner',       icon: Zap,             path: '/ai-feed-planner' },
   { label: 'Staff Portal',          icon: Users,           path: '/staff-portal' },
   { label: 'Maintenance',           icon: Wrench,          path: '/maintenance' },
+  { label: 'Alerts',                icon: Bell,            path: '/alerts' },
   { label: 'Feed & Health',         icon: Pill,            path: '/feed-health' },
   { label: 'Trade Analytics',       icon: Globe,           path: '/trade-analytics' },
   { label: 'Carcass Quality',       icon: ShieldAlert,     path: '/carcass-quality' },

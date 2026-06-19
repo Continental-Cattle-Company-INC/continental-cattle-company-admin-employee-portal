@@ -70,12 +70,13 @@ export async function computeOptimalRoute(origin, destination, vehicleSpecs = {}
 async function fetchGoogleMapsRoutes(origin, destination) {
   try {
     // Google Maps Directions API with alternatives
-    const apiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
       console.warn('Google Maps API key missing, skipping');
       return [];
     }
     
+    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&alternatives=true&mode=driving&key=${apiKey}`;
     const response = await fetch(url).then(r => r.json());
     
     if (response.status !== 'OK' || !response.routes) {
@@ -106,7 +107,7 @@ async function fetchGoogleMapsRoutes(origin, destination) {
 async function fetchTruckerPathRoute(origin, destination, vehicleSpecs) {
   try {
     // Trucker Path API (would need actual API integration)
-    const apiKey = Deno.env.get('TRUCKER_PATH_API_KEY');
+    const apiKey = process.env.TRUCKER_PATH_API_KEY;
     if (!apiKey) {
       console.warn('Trucker Path API key missing, skipping');
       return null;
@@ -151,7 +152,7 @@ async function fetchTruckerPathRoute(origin, destination, vehicleSpecs) {
  */
 async function fetchHERERoute(origin, destination, vehicleSpecs) {
   try {
-    const apiKey = Deno.env.get('HERE_API_KEY');
+    const apiKey = process.env.HERE_API_KEY;
     if (!apiKey) {
       console.warn('HERE API key missing, skipping');
       return null;
@@ -331,7 +332,7 @@ function getFallbackRoute(origin, destination) {
  */
 export async function geocodeAddress(address) {
   try {
-    const apiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
       console.warn('Google Maps API key missing, skipping geocode');
       return null;
