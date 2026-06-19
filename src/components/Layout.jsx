@@ -77,9 +77,9 @@ export default function Layout() {
   });
 
   return (
-    <div className="flex h-screen bg-background flex-col md:flex-row overflow-hidden">
+    <div className="flex h-screen bg-background flex-col md:flex-row">
       {/* Sidebar - Desktop + Mobile Modal */}
-      <aside className={`${mobileMenuOpen ? 'fixed inset-y-0 left-0 z-50 w-56 h-full' : 'hidden'} md:static md:flex ${sidebarOpen ? 'md:w-56' : 'md:w-0'} bg-card border-r border-border flex-col overflow-hidden transition-all duration-300`}>
+      <aside className={`${mobileMenuOpen ? 'fixed inset-0 left-0 z-50 w-56' : 'hidden'} md:static md:flex ${sidebarOpen ? 'md:w-56' : 'md:w-0'} bg-card border-r border-border flex-col transition-all duration-300`}>
        {/* Logo */}
        <div className="p-4 border-b border-border flex-shrink-0">
          <div className="flex items-center gap-3">
@@ -95,35 +95,38 @@ export default function Layout() {
          </div>
        </div>
 
-       {/* Navigation - Scrollable on mobile with touch support */}
-       <nav className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 p-2 space-y-1 md:overflow-y-auto touch-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
-          {navItems.map((item) => {
-            const active = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${
-                  active
-                    ? 'bg-primary/15 text-primary border border-primary/20'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-                }`}
-              >
-                <item.icon className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate">{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+       {/* Navigation - Scrollable area with proper height */}
+       <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ WebkitOverflowScrolling: 'touch' }}>
+         <nav className="p-2 space-y-1">
+           {navItems.map((item) => {
+             const active = location.pathname === item.path;
+             return (
+               <Link
+                 key={item.path}
+                 to={item.path}
+                 onClick={() => setMobileMenuOpen(false)}
+                 className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
+                   active
+                     ? 'bg-primary/15 text-primary border border-primary/20'
+                     : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                 }`}
+               >
+                 <item.icon className="w-4 h-4 flex-shrink-0" />
+                 <span className="truncate">{item.label}</span>
+               </Link>
+             );
+           })}
+         </nav>
+       </div>
 
-        {/* Footer - Fixed at bottom */}
-        <div className="p-3 border-t border-border text-xs text-muted-foreground space-y-1 flex-shrink-0 pb-safe">
-          <div className="truncate font-medium text-foreground">{user?.full_name || user?.email}</div>
-          <div className="truncate text-xs leading-tight">
-            {getAccessLabel(user)}
-          </div>
-          <div>v1.0 — Live</div>
-        </div>
+       {/* Footer - Fixed at bottom */}
+       <div className="p-3 border-t border-border text-xs text-muted-foreground space-y-1 flex-shrink-0 pb-safe">
+         <div className="truncate font-medium text-foreground">{user?.full_name || user?.email}</div>
+         <div className="truncate text-xs leading-tight">
+           {getAccessLabel(user)}
+         </div>
+         <div>v1.0 — Live</div>
+       </div>
       </aside>
 
       {/* Mobile Menu Overlay */}
