@@ -62,7 +62,9 @@ export default function ROILadder() {
   const [freightMilesOut, setFreightMilesOut] = useState(200);
   const [headOnLoad, setHeadOnLoad]           = useState(40);
   const [dieselLadder, setDieselLadder]       = useState(3.60);
-  
+
+  const cls = CLASSES.find(c => c.value === selectedClass);
+
   // USDA weight-based compliance
   const usdaLimit = getUsdaLimit(cls?.breedType, 'balanced');
   const targetGrade = getTargetGrade(cls?.breedType);
@@ -71,8 +73,6 @@ export default function ROILadder() {
   const freightInPerHead  = quickFreightPerHead(freightMilesIn,  headOnLoad, dieselLadder);
   const freightOutPerHead = quickFreightPerHead(freightMilesOut, headOnLoad, dieselLadder);
   const totalFreightPerHead = freightInPerHead + freightOutPerHead;
-
-  const cls = CLASSES.find(c => c.value === selectedClass);
 
   const ladder = useMemo(() =>
     calcLadder(cls, lcFutures, basis, cog, yardage, dlRate, interestRate, startWeight, totalFreightPerHead),
